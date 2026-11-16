@@ -66,11 +66,19 @@ import {
 // ============================================================================
 // FIREBASE INITIALIZATION & CONFIGURATION
 // ============================================================================
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+const firebaseConfig = {
+  apiKey: "AIzaSyC0ZgKV2_Pjqga9ig_bLnxhA3bavYt6EOk",
+  authDomain: "habit2x.firebaseapp.com",
+  projectId: "habit2x",
+  storageBucket: "habit2x.firebasestorage.app",
+  messagingSenderId: "32051321374",
+  appId: "1:32051321374:web:eee71db3dfef1ef5366c0f",
+  measurementId: "G-GCGFJN4X8E"
+};
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'habitx-discipline-app';
+const appId = 'habitx-discipline-app';
 
 // ============================================================================
 // CONSTANTS & DEFAULT DATA
