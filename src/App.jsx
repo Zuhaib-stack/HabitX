@@ -1,70 +1,17 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import {
-  getAuth,
-  signInAnonymously,
-  signInWithCustomToken,
-  onAuthStateChanged,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  updateProfile
+  getAuth, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword,
+  signInWithEmailAndPassword, signOut, updateProfile
 } from 'firebase/auth';
+import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, writeBatch } from 'firebase/firestore';
 import {
-  getFirestore,
-  doc,
-  setDoc,
-  getDoc,
-  onSnapshot,
-  collection,
-  writeBatch
-} from 'firebase/firestore';
-import {
-  LayoutDashboard,
-  CheckCircle2,
-  XCircle,
-  Circle,
-  Calendar as CalendarIcon,
-  BarChart3,
-  ListChecks,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-  Trash2,
-  Edit3,
-  ArrowUp,
-  ArrowDown,
-  Flame,
-  Trophy,
-  Target,
-  Sparkles,
-  Download,
-  Upload,
-  Bell,
-  Moon,
-  Sun,
-  Smartphone,
-  Monitor,
-  LogOut,
-  LogIn,
-  UserPlus,
-  Cloud,
-  CloudOff,
-  Check,
-  X,
-  AlertCircle,
-  FileText,
-  TrendingUp,
-  Award,
-  RefreshCw,
-  Share,
-  MoreVertical,
-  Info
+  Sunrise, ListChecks, CalendarDays, BarChart3, SlidersHorizontal, Check, X,
+  ChevronLeft, ChevronRight, Flame, LogOut, Plus, Archive, Trash2, AlertCircle, Cloud
 } from 'lucide-react';
 
 // ============================================================================
-// FIREBASE CONFIGURATION
+// FIREBASE
 // ============================================================================
 const firebaseConfig = {
   apiKey: "AIzaSyC0ZgKV2_Pjqga9ig_bLnxhA3bavYt6EOk",
@@ -81,7 +28,7 @@ const db = getFirestore(app);
 const appId = 'habitx-discipline-app';
 
 // ============================================================================
-// CONSTANTS & DEFAULT DATA
+// DATA
 // ============================================================================
 const DEFAULT_HABITS = [
   { id: 'def-1', name: 'Wake up at 4:00 AM', type: 'boolean', category: 'Discipline', order: 1, archived: false },
@@ -97,7 +44,7 @@ const DEFAULT_HABITS = [
   { id: 'def-11', name: 'Sleep After 11 PM', type: 'boolean', category: 'Discipline', order: 11, archived: false },
 ];
 
-const DISCIPLINE_QUOTES = [
+const QUOTES = [
   { text: "The most beloved deeds to Allah are those that are most consistent, even if they are small.", author: "Prophet Muhammad ﷺ (Sahih al-Bukhari)" },
   { text: "Discipline is choosing between what you want now and what you want most.", author: "Abraham Lincoln" },
   { text: "Take advantage of five before five: your youth before your old age, your health before your sickness, your wealth before your poverty, your free time before your busyness, and your life before your death.", author: "Hadith (Al-Hakim)" },
@@ -109,42 +56,99 @@ const DISCIPLINE_QUOTES = [
 
 const CATEGORIES = ['Islamic Routine', 'Discipline', 'Physical Health', 'Content Creation', 'Personal Growth'];
 
+const TABS = [
+  { id: 'today', label: 'Today', icon: Sunrise },
+  { id: 'tracker', label: 'Track', icon: ListChecks },
+  { id: 'calendar', label: 'Month', icon: CalendarDays },
+  { id: 'stats', label: 'Stats', icon: BarChart3 },
+  { id: 'manage', label: 'Habits', icon: SlidersHorizontal },
+];
+
 // ============================================================================
 // HELPERS
 // ============================================================================
-const getLocalDateKey = (dateObj = new Date()) => {
-  const year = dateObj.getFullYear();
-  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-  const day = String(dateObj.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+const getLocalDateKey = (d = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const parseDateKey = (k) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (k, n) => { const d = parseDateKey(k); d.setDate(d.getDate() + n); return getLocalDateKey(d); };
+const formatDisplayDate = (k) =>
+  parseDateKey(k).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+const getQuoteForDate = (k) =>
+  QUOTES[k.split('-').reduce((a, v) => a + parseInt(v, 10), 0) % QUOTES.length];
+const greeting = () => {
+  const h = new Date().getHours();
+  return h < 5 ? 'Before the dawn' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
 };
 
-const parseDateKey = (dateKey) => {
-  const [y, m, d] = dateKey.split('-').map(Number);
-  return new Date(y, m - 1, d);
-};
+// ============================================================================
+// STYLES: pre-dawn palette, injected once
+// ============================================================================
+const STYLES = `
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Manrope:wght@400;500;600;700&display=swap');
+:root{
+  --night:#0f0e1c; --deep:#171530; --veil:#211e45; --line:rgba(255,236,220,.09);
+  --ink:#f6eee6; --mute:#a59fbd; --sun:#ffc27a; --coral:#ff8a7a; --rose:#e86f9a; --iris:#8b7cf8;
+}
+.hx{font-family:'Manrope',system-ui,sans-serif;color:var(--ink);background:var(--night);min-height:100vh;
+  background-image:radial-gradient(900px 500px at 50% -10%,rgba(139,124,248,.28),transparent 70%),
+  radial-gradient(700px 400px at 100% 0%,rgba(255,138,122,.12),transparent 70%)}
+.hx-serif{font-family:'Fraunces',Georgia,serif;font-weight:400;letter-spacing:-.01em}
+.hx-card{background:linear-gradient(180deg,rgba(33,30,69,.7),rgba(23,21,48,.7));border:1px solid var(--line);border-radius:28px}
+.hx-input{width:100%;background:rgba(15,14,28,.7);border:1px solid var(--line);border-radius:16px;padding:.8rem 1rem;color:var(--ink);font-size:.9rem;outline:none}
+.hx-input:focus{border-color:var(--sun)}
+.hx-btn{background:linear-gradient(135deg,var(--sun),var(--coral));color:#2a1420;font-weight:700;border-radius:999px;padding:.8rem 1.4rem;font-size:.85rem}
+.hx-btn:disabled{opacity:.5}
+.hx-ghost{background:rgba(255,236,220,.06);border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:.7rem 1.2rem;font-size:.8rem;font-weight:600}
+.hx button:focus-visible,.hx input:focus-visible,.hx select:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
+@keyframes hx-rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.hx-rise{animation:hx-rise .7s ease-out both}
+@media (prefers-reduced-motion:reduce){.hx-rise{animation:none}*{transition:none!important}}
+`;
 
-const addDays = (dateKey, days) => {
-  const d = parseDateKey(dateKey);
-  d.setDate(d.getDate() + days);
-  return getLocalDateKey(d);
-};
+// ============================================================================
+// SMALL COMPONENTS
+// ============================================================================
+function SunArc({ pct }) {
+  const p = Math.max(0, Math.min(100, pct)) / 100;
+  const cx = 130, cy = 130, r = 110;
+  const x = cx - r * Math.cos(Math.PI * p);
+  const y = cy - r * Math.sin(Math.PI * p);
+  const len = Math.PI * r;
+  return (
+    <svg viewBox="0 0 260 150" className="w-full max-w-sm mx-auto" role="img" aria-label={`${pct}% of today's habits completed`}>
+      <defs>
+        <linearGradient id="arc" x1="0" x2="1">
+          <stop offset="0" stopColor="#8b7cf8" /><stop offset=".5" stopColor="#e86f9a" /><stop offset="1" stopColor="#ffc27a" />
+        </linearGradient>
+        <radialGradient id="glow"><stop offset="0" stopColor="#ffc27a" stopOpacity=".9" /><stop offset="1" stopColor="#ffc27a" stopOpacity="0" /></radialGradient>
+      </defs>
+      <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`} fill="none" stroke="rgba(255,236,220,.08)" strokeWidth="14" strokeLinecap="round" />
+      <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`} fill="none" stroke="url(#arc)" strokeWidth="14" strokeLinecap="round"
+        strokeDasharray={len} strokeDashoffset={len * (1 - p)} style={{ transition: 'stroke-dashoffset .9s ease' }} />
+      <circle cx={x} cy={y} r="26" fill="url(#glow)" />
+      <circle cx={x} cy={y} r="9" fill="#ffe3b8" />
+      <line x1="10" x2="250" y1={cy + 8} y2={cy + 8} stroke="rgba(255,236,220,.12)" />
+    </svg>
+  );
+}
 
-const formatDisplayDate = (dateKey) => {
-  const d = parseDateKey(dateKey);
-  return d.toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  });
-};
+function StateButton({ status, onClick }) {
+  const base = 'w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-colors border';
+  const cls = status === 'done'
+    ? 'bg-[#ffc27a] border-[#ffc27a] text-[#2a1420]'
+    : status === 'missed'
+    ? 'bg-[#e86f9a]/20 border-[#e86f9a]/60 text-[#ff9db9]'
+    : 'bg-transparent border-[rgba(255,236,220,.22)] text-transparent';
+  return (
+    <button onClick={onClick} className={`${base} ${cls}`} aria-label={`Status: ${status === 'empty' ? 'pending' : status}. Tap to change.`}>
+      {status === 'missed' ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
+    </button>
+  );
+}
 
-const getQuoteForDate = (dateKey) => {
-  const num = dateKey.split('-').reduce((acc, val) => acc + parseInt(val, 10), 0);
-  return DISCIPLINE_QUOTES[num % DISCIPLINE_QUOTES.length];
-};
-
+// ============================================================================
+// APP
+// ============================================================================
 export default function App() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -155,24 +159,16 @@ export default function App() {
   const [authError, setAuthError] = useState('');
   const [authSubmitting, setAuthSubmitting] = useState(false);
 
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('today');
   const [selectedDate, setSelectedDate] = useState(getLocalDateKey());
-  const [theme, setTheme] = useState('dark');
+  const [monthCursor, setMonthCursor] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [syncStatus, setSyncStatus] = useState('synced');
-  const [toastMessage, setToastMessage] = useState(null);
+  const [toast, setToast] = useState(null);
 
   const [habits, setHabits] = useState([]);
   const [dailyRecords, setDailyRecords] = useState({});
-  const [userSettings, setUserSettings] = useState({
-    duroodTarget: 100,
-    reminderEnabled: false,
-    reminderTime: '04:00',
-    reminderHabit: 'Wake up at 4:00 AM'
-  });
-  const [dataLoading, setDataLoading] = useState(true);
+  const [userSettings, setUserSettings] = useState({ duroodTarget: 100 });
 
-  const [confirmModal, setConfirmModal] = useState(null);
-  const [editingHabit, setEditingHabit] = useState(null);
   const [newHabitName, setNewHabitName] = useState('');
   const [newHabitType, setNewHabitType] = useState('boolean');
   const [newHabitCategory, setNewHabitCategory] = useState('Discipline');
@@ -181,161 +177,98 @@ export default function App() {
   const [noteDraft, setNoteDraft] = useState('');
   const noteTimeoutRef = useRef(null);
 
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2800); };
+
+  // ---- auth
+  useEffect(() => onAuthStateChanged(auth, (u) => { setUser(u); setAuthLoading(false); }), []);
+
+  // ---- data
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setAuthLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
+    if (!user) { setHabits([]); setDailyRecords({}); return; }
+    const uid = user.uid;
+    const base = ['artifacts', appId, 'users', uid];
 
-  useEffect(() => {
-    if (!user) {
-      setHabits([]);
-      setDailyRecords({});
-      setDataLoading(false);
-      return;
-    }
-
-    setDataLoading(true);
-    const userId = user.uid;
-
-    const habitsColRef = collection(db, 'artifacts', appId, 'users', userId, 'habits');
-    const unsubHabits = onSnapshot(habitsColRef, async (snapshot) => {
-      if (snapshot.empty) {
+    const unsubHabits = onSnapshot(collection(db, ...base, 'habits'), async (snap) => {
+      if (snap.empty) {
         try {
           const batch = writeBatch(db);
-          DEFAULT_HABITS.forEach((h) => {
-            const hRef = doc(db, 'artifacts', appId, 'users', userId, 'habits', h.id);
-            batch.set(hRef, { ...h, createdAt: Date.now() });
-          });
+          DEFAULT_HABITS.forEach((h) => batch.set(doc(db, ...base, 'habits', h.id), { ...h, createdAt: Date.now() }));
           await batch.commit();
-        } catch (err) {
-          console.error(err);
-        }
+        } catch (err) { console.error(err); }
       } else {
-        const loaded = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const loaded = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         loaded.sort((a, b) => (a.order || 0) - (b.order || 0));
         setHabits(loaded);
       }
-      setDataLoading(false);
     });
-
-    const recordsColRef = collection(db, 'artifacts', appId, 'users', userId, 'dailyRecords');
-    const unsubRecords = onSnapshot(recordsColRef, (snapshot) => {
+    const unsubRecords = onSnapshot(collection(db, ...base, 'dailyRecords'), (snap) => {
       const recs = {};
-      snapshot.docs.forEach((d) => {
-        recs[d.id] = d.data();
-      });
+      snap.docs.forEach((d) => { recs[d.id] = d.data(); });
       setDailyRecords(recs);
       setSyncStatus('synced');
     });
-
-    const settingsDocRef = doc(db, 'artifacts', appId, 'users', userId, 'settings', 'preferences');
-    const unsubSettings = onSnapshot(settingsDocRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setUserSettings((prev) => ({ ...prev, ...data }));
-      }
+    const unsubSettings = onSnapshot(doc(db, ...base, 'settings', 'preferences'), (s) => {
+      if (s.exists()) setUserSettings((p) => ({ ...p, ...s.data() }));
     });
-
-    return () => {
-      unsubHabits();
-      unsubRecords();
-      unsubSettings();
-    };
+    return () => { unsubHabits(); unsubRecords(); unsubSettings(); };
   }, [user]);
 
-  useEffect(() => {
-    const currentNote = dailyRecords[selectedDate]?.note || '';
-    setNoteDraft(currentNote);
-  }, [selectedDate, dailyRecords[selectedDate]?.note]);
+  useEffect(() => { setNoteDraft(dailyRecords[selectedDate]?.note || ''); }, [selectedDate, dailyRecords[selectedDate]?.note]);
 
-  const showToast = (msg, type = 'success') => {
-    setToastMessage({ msg, type });
-    setTimeout(() => setToastMessage(null), 3200);
-  };
-
+  // ---- actions
   const handleEmailAuth = async (e) => {
     e.preventDefault();
-    setAuthError('');
-    setAuthSubmitting(true);
+    setAuthError(''); setAuthSubmitting(true);
     try {
       if (authMode === 'signup') {
         const cred = await createUserWithEmailAndPassword(auth, authEmail.trim(), authPassword);
-        if (authName.trim()) {
-          await updateProfile(cred.user, { displayName: authName.trim() });
-        }
-        showToast('Welcome to HabitX Pro!');
+        if (authName.trim()) await updateProfile(cred.user, { displayName: authName.trim() });
+        showToast('Account created');
       } else {
         await signInWithEmailAndPassword(auth, authEmail.trim(), authPassword);
-        showToast('Signed in successfully!');
+        showToast('Signed in');
       }
-    } catch (err) {
-      setAuthError(err.message || 'Authentication failed.');
-    } finally {
-      setAuthSubmitting(false);
-    }
+    } catch (err) { setAuthError(err.message || 'Sign-in failed. Check your details and try again.'); }
+    finally { setAuthSubmitting(false); }
   };
 
-  const handleQuickDemoSignIn = async () => {
-    setAuthError('');
-    setAuthSubmitting(true);
-    try {
-      await signInAnonymously(auth);
-      showToast('Signed in with Cloud Account!');
-    } catch (err) {
-      setAuthError(err.message);
-    } finally {
-      setAuthSubmitting(false);
-    }
+  const handleGuest = async () => {
+    setAuthError(''); setAuthSubmitting(true);
+    try { await signInAnonymously(auth); showToast('Signed in as guest'); }
+    catch (err) { setAuthError(err.message); }
+    finally { setAuthSubmitting(false); }
   };
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      showToast('Logged out.');
-    } catch (err) {
-      showToast('Logout error', 'error');
-    }
-  };
+  const handleLogout = async () => { try { await signOut(auth); showToast('Signed out'); } catch { showToast('Could not sign out'); } };
 
-  const updateHabitStatus = async (dateKey, habitId, newValue) => {
+  const updateHabitStatus = async (dateKey, habitId, value) => {
     if (!user) return;
     setSyncStatus('syncing');
-    const existingRecord = dailyRecords[dateKey] || { statuses: {}, note: '' };
-    const updatedStatuses = { ...(existingRecord.statuses || {}), [habitId]: newValue };
-
-    setDailyRecords((prev) => ({
-      ...prev,
-      [dateKey]: { ...existingRecord, statuses: updatedStatuses, updatedAt: Date.now() }
-    }));
-
+    const existing = dailyRecords[dateKey] || { statuses: {}, note: '' };
+    const statuses = { ...(existing.statuses || {}), [habitId]: value };
+    setDailyRecords((p) => ({ ...p, [dateKey]: { ...existing, statuses, updatedAt: Date.now() } }));
     try {
-      const recRef = doc(db, 'artifacts', appId, 'users', user.uid, 'dailyRecords', dateKey);
-      await setDoc(recRef, { date: dateKey, statuses: updatedStatuses, note: existingRecord.note || '', updatedAt: Date.now() }, { merge: true });
+      await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'dailyRecords', dateKey),
+        { date: dateKey, statuses, note: existing.note || '', updatedAt: Date.now() }, { merge: true });
       setSyncStatus('synced');
-    } catch (err) {
-      setSyncStatus('error');
-    }
+    } catch { setSyncStatus('error'); }
   };
 
-  const handleCycleBooleanHabit = (dateKey, habitId) => {
-    const current = dailyRecords[dateKey]?.statuses?.[habitId] || 'empty';
-    const next = current === 'empty' ? 'done' : current === 'done' ? 'missed' : 'empty';
-    updateHabitStatus(dateKey, habitId, next);
+  const cycleHabit = (dateKey, habitId) => {
+    const cur = dailyRecords[dateKey]?.statuses?.[habitId] || 'empty';
+    updateHabitStatus(dateKey, habitId, cur === 'empty' ? 'done' : cur === 'done' ? 'missed' : 'empty');
   };
 
   const handleNoteChange = (val) => {
     setNoteDraft(val);
-    if (noteTimeoutRef.current) clearTimeout(noteTimeoutRef.current);
+    clearTimeout(noteTimeoutRef.current);
     noteTimeoutRef.current = setTimeout(async () => {
       if (!user) return;
       try {
-        const existingRecord = dailyRecords[selectedDate] || { statuses: {}, note: '' };
-        const recRef = doc(db, 'artifacts', appId, 'users', user.uid, 'dailyRecords', selectedDate);
-        await setDoc(recRef, { date: selectedDate, statuses: existingRecord.statuses || {}, note: val, updatedAt: Date.now() }, { merge: true });
-      } catch (err) {}
+        const existing = dailyRecords[selectedDate] || { statuses: {} };
+        await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'dailyRecords', selectedDate),
+          { date: selectedDate, statuses: existing.statuses || {}, note: val, updatedAt: Date.now() }, { merge: true });
+      } catch (err) { console.error(err); }
     }, 600);
   };
 
@@ -343,663 +276,360 @@ export default function App() {
     e.preventDefault();
     if (!user || !newHabitName.trim()) return;
     const id = `custom-${Date.now()}`;
-    const maxOrder = habits.reduce((max, h) => Math.max(max, h.order || 0), 0);
-    const newHabit = {
-      id,
-      name: newHabitName.trim(),
-      type: newHabitType,
-      category: newHabitCategory,
-      order: maxOrder + 1,
-      archived: false,
+    const maxOrder = habits.reduce((m, h) => Math.max(m, h.order || 0), 0);
+    const habit = {
+      id, name: newHabitName.trim(), type: newHabitType, category: newHabitCategory,
+      order: maxOrder + 1, archived: false, createdAt: Date.now(),
       ...(newHabitType === 'numeric' ? { target: Number(newHabitTarget) || 100 } : {}),
-      createdAt: Date.now()
     };
     try {
-      await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'habits', id), newHabit);
+      await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'habits', id), habit);
       setNewHabitName('');
-      showToast(`Added "${newHabit.name}"!`);
-    } catch (err) {
-      showToast('Failed to add habit', 'error');
-    }
+      showToast(`Added “${habit.name}”`);
+    } catch { showToast('Could not add the habit. Try again.'); }
   };
 
+  const archiveHabit = async (h) => {
+    try { await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'habits', h.id), { archived: true }, { merge: true }); showToast('Habit archived'); }
+    catch { showToast('Could not archive the habit'); }
+  };
+  const deleteHabit = async (h) => {
+    if (!window.confirm(`Delete “${h.name}”? Past records stay, but the habit is removed.`)) return;
+    try { await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'habits', h.id)); showToast('Habit deleted'); }
+    catch { showToast('Could not delete the habit'); }
+  };
+
+  // ---- derived
   const activeHabits = useMemo(() => habits.filter((h) => !h.archived), [habits]);
   const booleanHabits = useMemo(() => activeHabits.filter((h) => h.type === 'boolean'), [activeHabits]);
   const duroodHabit = useMemo(() => activeHabits.find((h) => h.id === 'def-7') || activeHabits.find((h) => h.type === 'numeric'), [activeHabits]);
 
-  const getDayMetrics = (dateKey) => {
-    const rec = dailyRecords[dateKey]?.statuses || {};
-    let completed = 0;
-    let missed = 0;
-    let pending = 0;
+  const getDayMetrics = (k) => {
+    const rec = dailyRecords[k]?.statuses || {};
+    let completed = 0, missed = 0, pending = 0;
     booleanHabits.forEach((h) => {
-      const st = rec[h.id];
-      if (st === 'done') completed++;
-      else if (st === 'missed') missed++;
-      else pending++;
+      const s = rec[h.id];
+      if (s === 'done') completed++; else if (s === 'missed') missed++; else pending++;
     });
-    const totalBool = booleanHabits.length;
-    const pct = totalBool > 0 ? Math.round((completed / totalBool) * 100) : 0;
+    const total = booleanHabits.length;
+    const pct = total ? Math.round((completed / total) * 100) : 0;
     const duroodCount = duroodHabit ? Number(rec[duroodHabit.id] || 0) : 0;
     const duroodTarget = duroodHabit?.target || userSettings.duroodTarget || 100;
-    const duroodPct = duroodTarget > 0 ? Math.min(100, Math.round((duroodCount / duroodTarget) * 100)) : 0;
-    return { totalBool, completed, missed, pending, pct, duroodCount, duroodTarget, duroodPct };
+    return { total, completed, missed, pending, pct, duroodCount, duroodTarget, duroodPct: Math.min(100, Math.round((duroodCount / duroodTarget) * 100)) };
   };
 
   const todayKey = getLocalDateKey();
-  const todayMetrics = useMemo(() => getDayMetrics(todayKey), [dailyRecords, booleanHabits, duroodHabit, userSettings]);
-  const selectedDayMetrics = useMemo(() => getDayMetrics(selectedDate), [selectedDate, dailyRecords, booleanHabits, duroodHabit, userSettings]);
+  const today = useMemo(() => getDayMetrics(todayKey), [dailyRecords, booleanHabits, duroodHabit, userSettings]);
 
   const analytics = useMemo(() => {
-    const last7Keys = Array.from({ length: 7 }, (_, i) => addDays(todayKey, -(6 - i)));
-    const last30Keys = Array.from({ length: 30 }, (_, i) => addDays(todayKey, -(29 - i)));
-    const weeklyAvg = Math.round(last7Keys.reduce((acc, k) => acc + getDayMetrics(k).pct, 0) / 7);
-    const monthlyAvg = Math.round(last30Keys.reduce((acc, k) => acc + getDayMetrics(k).pct, 0) / 30);
-
-    const allRecordedDates = Object.keys(dailyRecords).sort();
-    let bestStreak = 0;
-    let runningStreak = 0;
-    if (allRecordedDates.length > 0) {
-      let cursor = allRecordedDates[0];
-      while (cursor <= todayKey) {
-        const m = getDayMetrics(cursor);
-        if (m.completed > 0 && m.pct >= 70) {
-          runningStreak++;
-          if (runningStreak > bestStreak) bestStreak = runningStreak;
-        } else if (cursor !== todayKey) {
-          runningStreak = 0;
-        }
-        cursor = addDays(cursor, 1);
+    const last14 = Array.from({ length: 14 }, (_, i) => addDays(todayKey, -(13 - i)));
+    const avg = (n) => Math.round(Array.from({ length: n }, (_, i) => getDayMetrics(addDays(todayKey, -i)).pct).reduce((a, b) => a + b, 0) / n);
+    const dates = Object.keys(dailyRecords).sort();
+    let best = 0, run = 0;
+    if (dates.length) {
+      let c = dates[0];
+      while (c <= todayKey) {
+        if (getDayMetrics(c).pct >= 70) { run++; best = Math.max(best, run); }
+        else if (c !== todayKey) run = 0;
+        c = addDays(c, 1);
       }
     }
-
-    let currentStreak = 0;
-    let backCursor = todayKey;
-    if (getDayMetrics(todayKey).pct < 70) backCursor = addDays(todayKey, -1);
-    while (dailyRecords[backCursor] && getDayMetrics(backCursor).pct >= 70) {
-      currentStreak++;
-      backCursor = addDays(backCursor, -1);
-    }
-
-    const loggedDaysCount = allRecordedDates.length;
-    const overallConsistency = loggedDaysCount > 0 ? Math.round(allRecordedDates.reduce((sum, k) => sum + getDayMetrics(k).pct, 0) / loggedDaysCount) : 0;
-
-    return { last7Keys, weeklyAvg, monthlyAvg, currentStreak, bestStreak: Math.max(bestStreak, currentStreak), overallConsistency };
+    let current = 0;
+    let back = getDayMetrics(todayKey).pct < 70 ? addDays(todayKey, -1) : todayKey;
+    while (dailyRecords[back] && getDayMetrics(back).pct >= 70) { current++; back = addDays(back, -1); }
+    const overall = dates.length ? Math.round(dates.reduce((s, k) => s + getDayMetrics(k).pct, 0) / dates.length) : 0;
+    return { last14, weekly: avg(7), monthly: avg(30), current, best: Math.max(best, current), overall };
   }, [dailyRecords, booleanHabits, duroodHabit, todayKey]);
 
-  // Auth Screen
+  const quote = getQuoteForDate(todayKey);
+  const goDay = (k) => { setSelectedDate(k); setActiveTab('tracker'); };
+
+  // ============================== RENDER ==============================
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#030305] flex items-center justify-center text-zinc-400">
-        <div className="flex items-center gap-3">
-          <RefreshCw className="w-6 h-6 animate-spin text-emerald-500" />
-          <span className="text-sm font-medium">Loading HabitX Pro...</span>
-        </div>
+      <div className="hx flex items-center justify-center">
+        <style>{STYLES}</style>
+        <p className="hx-serif text-xl text-[color:var(--mute)]">Loading your day…</p>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#030305] text-zinc-100 flex items-center justify-center p-4 relative overflow-hidden">
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-emerald-600/10 rounded-full blur-3xl pointer-events-none"></div>
-
-        <div className="w-full max-w-md bg-zinc-900/70 backdrop-blur-2xl border border-zinc-800/80 rounded-3xl p-8 shadow-2xl relative z-10">
-          <div className="flex flex-col items-center text-center mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 to-emerald-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-zinc-950 font-black text-2xl mb-4">
-              HX
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">HabitX Pro</h1>
-            <p className="text-sm text-zinc-400 mt-1">Discipline, Islamic Routine & Personal Growth</p>
-          </div>
+      <div className="hx flex items-center justify-center p-5">
+        <style>{STYLES}</style>
+        <div className="hx-card w-full max-w-md p-8 hx-rise">
+          <h1 className="hx-serif text-4xl leading-tight">Rise early.<br />Stay steady.</h1>
+          <p className="text-sm text-[color:var(--mute)] mt-3">HabitX tracks your prayers, discipline, health and creative work in one daily checklist.</p>
 
           {authError && (
-            <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-3">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{authError}</span>
+            <div className="mt-5 p-3 rounded-2xl bg-[#e86f9a]/10 border border-[#e86f9a]/30 text-[#ff9db9] text-xs flex gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" /><span>{authError}</span>
             </div>
           )}
 
-          <form onSubmit={handleEmailAuth} className="space-y-4">
+          <form onSubmit={handleEmailAuth} className="mt-6 space-y-3">
             {authMode === 'signup' && (
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1">Your Name</label>
-                <input
-                  type="text"
-                  required
-                  value={authName}
-                  onChange={(e) => setAuthName(e.target.value)}
-                  placeholder="Mohd Zuhaib Khan"
-                  className="w-full px-4 py-3 rounded-xl bg-zinc-950/80 border border-zinc-800 text-zinc-100 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
-                />
-              </div>
+              <input className="hx-input" required placeholder="Your name" aria-label="Your name" value={authName} onChange={(e) => setAuthName(e.target.value)} />
             )}
-            <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">Email Address</label>
-              <input
-                type="email"
-                required
-                value={authEmail}
-                onChange={(e) => setAuthEmail(e.target.value)}
-                placeholder="name@example.com"
-                className="w-full px-4 py-3 rounded-xl bg-zinc-950/80 border border-zinc-800 text-zinc-100 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">Password</label>
-              <input
-                type="password"
-                required
-                value={authPassword}
-                onChange={(e) => setAuthPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-xl bg-zinc-950/80 border border-zinc-800 text-zinc-100 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={authSubmitting}
-              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-zinc-950 font-bold text-sm shadow-lg shadow-emerald-500/20 transition-all duration-200 disabled:opacity-50"
-            >
-              {authSubmitting ? 'Please wait...' : authMode === 'signup' ? 'Create Account' : 'Sign In'}
+            <input className="hx-input" type="email" required placeholder="Email" aria-label="Email" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} />
+            <input className="hx-input" type="password" required placeholder="Password" aria-label="Password" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} />
+            <button type="submit" disabled={authSubmitting} className="hx-btn w-full">
+              {authSubmitting ? 'Please wait…' : authMode === 'signup' ? 'Create account' : 'Sign in'}
             </button>
           </form>
 
-          <div className="mt-6">
-            <button
-              onClick={handleQuickDemoSignIn}
-              disabled={authSubmitting}
-              className="w-full py-3 px-4 rounded-xl bg-zinc-800/80 hover:bg-zinc-800 border border-zinc-700/50 text-zinc-200 font-semibold text-xs transition-colors flex items-center justify-center gap-2"
-            >
-              <Sparkles className="w-4 h-4 text-emerald-400" />
-              <span>Instant Cloud Session (Guest)</span>
-            </button>
-          </div>
-
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => {
-                setAuthMode(authMode === 'login' ? 'signup' : 'login');
-                setAuthError('');
-              }}
-              className="text-xs text-zinc-400 hover:text-emerald-400 transition-colors"
-            >
-              {authMode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
-            </button>
-          </div>
+          <button onClick={handleGuest} disabled={authSubmitting} className="hx-ghost w-full mt-3">Continue as guest</button>
+          <button onClick={() => { setAuthMode(authMode === 'login' ? 'signup' : 'login'); setAuthError(''); }}
+            className="block mx-auto mt-5 text-xs text-[color:var(--mute)] hover:text-[color:var(--sun)]">
+            {authMode === 'login' ? 'New here? Create an account' : 'Have an account? Sign in'}
+          </button>
         </div>
       </div>
     );
   }
 
-  // Main Authenticated Layout
+  const firstName = (user.displayName || '').split(' ')[0];
+
+  // month grid
+  const monthLabel = monthCursor.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const firstWeekday = monthCursor.getDay();
+  const daysInMonth = new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 0).getDate();
+  const cells = [...Array(firstWeekday).fill(null), ...Array.from({ length: daysInMonth }, (_, i) =>
+    getLocalDateKey(new Date(monthCursor.getFullYear(), monthCursor.getMonth(), i + 1)))];
+
   return (
-    <div className="min-h-screen bg-[#030305] text-zinc-100 flex flex-col lg:flex-row pb-24 lg:pb-0 selection:bg-emerald-500/30 selection:text-emerald-200">
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed top-5 right-5 z-50 animate-bounce bg-zinc-900 border border-emerald-500/40 text-zinc-100 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-xs">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>{toastMessage.msg}</span>
-        </div>
+    <div className="hx pb-32">
+      <style>{STYLES}</style>
+
+      {toast && (
+        <div role="status" className="fixed top-5 left-1/2 -translate-x-1/2 z-50 hx-card px-5 py-2.5 text-xs font-semibold">{toast}</div>
       )}
 
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-72 bg-zinc-950/80 backdrop-blur-2xl border-r border-zinc-800/60 p-6 flex-col justify-between sticky top-0 h-screen">
-        <div>
-          <div className="flex items-center space-x-3 mb-8">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-600 to-emerald-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-zinc-950 font-black text-xl">
-              HX
-            </div>
-            <div>
-              <h1 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-                HabitX <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">Pro</span>
-              </h1>
-              <p className="text-[11px] text-zinc-400">Personal Discipline System</p>
-            </div>
-          </div>
+      <div className="max-w-3xl mx-auto px-5 pt-8">
+        {/* top bar */}
+        <header className="flex items-center justify-between mb-8">
+          <p className="text-xs text-[color:var(--mute)] flex items-center gap-2">
+            <Cloud className="w-3.5 h-3.5" />
+            {syncStatus === 'synced' ? 'Saved' : syncStatus === 'syncing' ? 'Saving…' : 'Not saved. Check your connection.'}
+          </p>
+          <button onClick={handleLogout} className="hx-ghost flex items-center gap-2 !py-2"><LogOut className="w-3.5 h-3.5" />Sign out</button>
+        </header>
 
-          <nav className="space-y-1.5">
-            {[
-              { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-              { id: 'tracker', label: 'Daily Tracker', icon: ListChecks },
-              { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
-              { id: 'stats', label: 'Statistics', icon: BarChart3 },
-              { id: 'manage', label: 'Manage Habits', icon: Settings },
-            ].map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
+        {/* ================= TODAY ================= */}
+        {activeTab === 'today' && (
+          <div className="space-y-5 hx-rise">
+            <section className="hx-card px-6 pt-8 pb-7 text-center">
+              <p className="text-sm text-[color:var(--mute)]">{greeting()}{firstName ? `, ${firstName}` : ''}</p>
+              <SunArc pct={today.pct} />
+              <div className="-mt-10 relative">
+                <p className="hx-serif text-6xl">{today.pct}<span className="text-2xl text-[color:var(--mute)]">%</span></p>
+                <p className="text-sm text-[color:var(--mute)] mt-1">{today.completed} of {today.total} done · {formatDisplayDate(todayKey)}</p>
+              </div>
+              <button onClick={() => { setSelectedDate(todayKey); setActiveTab('tracker'); }} className="hx-btn mt-6">Open today’s checklist</button>
+            </section>
+
+            <section className="hx-card grid grid-cols-3 divide-x divide-[color:var(--line)] py-5 text-center">
+              <div><p className="hx-serif text-3xl flex items-center justify-center gap-1.5"><Flame className="w-5 h-5 text-[color:var(--coral)]" />{analytics.current}</p><p className="text-xs text-[color:var(--mute)] mt-1">day streak</p></div>
+              <div><p className="hx-serif text-3xl">{analytics.weekly}%</p><p className="text-xs text-[color:var(--mute)] mt-1">last 7 days</p></div>
+              <div><p className="hx-serif text-3xl">{analytics.best}</p><p className="text-xs text-[color:var(--mute)] mt-1">best streak</p></div>
+            </section>
+
+            <section className="hx-card p-6">
+              <div className="flex items-end justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold">Durood Shareef</h2>
+                  <p className="text-xs text-[color:var(--mute)] mt-0.5">Target {today.duroodTarget} today</p>
+                </div>
+                <p className="hx-serif text-4xl">{today.duroodCount}</p>
+              </div>
+              <div className="h-2 rounded-full bg-white/10 mt-4 overflow-hidden">
+                <div className="h-full rounded-full" style={{ width: `${today.duroodPct}%`, background: 'linear-gradient(90deg,var(--iris),var(--rose),var(--sun))', transition: 'width .6s ease' }} />
+              </div>
+            </section>
+
+            <blockquote className="px-3 pt-3">
+              <p className="hx-serif text-xl leading-snug">“{quote.text}”</p>
+              <footer className="text-xs text-[color:var(--sun)] mt-3">{quote.author}</footer>
+            </blockquote>
+          </div>
+        )}
+
+        {/* ================= TRACKER ================= */}
+        {activeTab === 'tracker' && (
+          <div className="space-y-5 hx-rise">
+            <div className="flex items-center justify-between">
+              <h2 className="hx-serif text-3xl">{selectedDate === todayKey ? 'Today' : formatDisplayDate(selectedDate)}</h2>
+              <div className="flex items-center gap-1.5">
+                <button className="hx-ghost !p-2.5" aria-label="Previous day" onClick={() => setSelectedDate(addDays(selectedDate, -1))}><ChevronLeft className="w-4 h-4" /></button>
+                <input type="date" aria-label="Pick a date" value={selectedDate} onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
+                  className="bg-transparent text-xs font-semibold px-1 w-[7.5rem] cursor-pointer [color-scheme:dark]" />
+                <button className="hx-ghost !p-2.5" aria-label="Next day" onClick={() => setSelectedDate(addDays(selectedDate, 1))}><ChevronRight className="w-4 h-4" /></button>
+              </div>
+            </div>
+            <p className="text-xs text-[color:var(--mute)] -mt-2">Tap the circle to cycle: pending, done, missed.</p>
+
+            {CATEGORIES.map((cat) => {
+              const list = activeHabits.filter((h) => h.category === cat);
+              if (!list.length) return null;
               return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-xs transition-all duration-200 ${
-                    isActive
-                      ? 'bg-gradient-to-r from-emerald-500/20 to-emerald-500/5 text-emerald-400 border border-emerald-500/30 shadow-lg shadow-emerald-500/5'
-                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60'
-                  }`}
-                >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-400' : 'text-zinc-400'}`} />
-                  <span>{item.label}</span>
-                </button>
+                <section key={cat} className="hx-card p-5">
+                  <h3 className="text-sm font-semibold mb-3 text-[color:var(--sun)]">{cat}</h3>
+                  <ul className="divide-y divide-[color:var(--line)]">
+                    {list.map((h) => {
+                      const val = dailyRecords[selectedDate]?.statuses?.[h.id];
+                      if (h.type === 'numeric') {
+                        return (
+                          <li key={h.id} className="flex items-center justify-between gap-3 py-3">
+                            <div>
+                              <p className="text-sm font-medium">{h.name}</p>
+                              <p className="text-xs text-[color:var(--mute)]">Target {h.target || 100} per day</p>
+                            </div>
+                            <input type="number" min="0" inputMode="numeric" value={val || ''} placeholder="0" aria-label={`${h.name} count`}
+                              onChange={(e) => updateHabitStatus(selectedDate, h.id, Number(e.target.value) || 0)}
+                              className="hx-input !w-24 text-center font-bold" />
+                          </li>
+                        );
+                      }
+                      const status = val || 'empty';
+                      return (
+                        <li key={h.id} className="flex items-center gap-4 py-3 cursor-pointer" onClick={() => cycleHabit(selectedDate, h.id)}>
+                          <StateButton status={status} onClick={(e) => { e.stopPropagation(); cycleHabit(selectedDate, h.id); }} />
+                          <p className={`text-sm font-medium flex-1 ${status === 'done' ? 'text-[color:var(--mute)] line-through decoration-[color:var(--sun)]/60' : ''}`}>{h.name}</p>
+                          {status === 'missed' && <span className="text-xs text-[#ff9db9]">Missed</span>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
               );
             })}
-          </nav>
-        </div>
 
-        <div className="pt-6 border-t border-zinc-800/60">
-          <div className="flex items-center justify-between px-3 py-2 bg-zinc-900/60 rounded-xl border border-zinc-800/60 mb-3">
-            <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${syncStatus === 'synced' ? 'bg-emerald-500' : 'bg-amber-500'} animate-pulse`}></span>
-              <span className="text-[11px] text-zinc-300 font-medium capitalize">{syncStatus}</span>
-            </div>
-            <Cloud className="w-4 h-4 text-zinc-400" />
-          </div>
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs font-semibold transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Sign Out</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* Mobile Top Header */}
-      <header className="lg:hidden sticky top-0 z-40 bg-zinc-950/90 backdrop-blur-xl border-b border-zinc-800/80 px-4 py-3.5 flex items-center justify-between">
-        <div className="flex items-center space-x-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-emerald-400 flex items-center justify-center text-zinc-950 font-black text-lg">
-            HX
-          </div>
-          <span className="font-bold text-sm text-white">HabitX Pro</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-[10px] text-zinc-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Synced</span>
-          </div>
-          <button onClick={handleLogout} className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400">
-            <LogOut className="w-4 h-4" />
-          </button>
-        </div>
-      </header>
-
-      {/* Main Content Area */}
-      <main className="flex-1 p-4 lg:p-10 max-w-6xl mx-auto w-full">
-        {/* Quote Banner */}
-        <div className="mb-6 p-4 lg:p-6 rounded-2xl bg-gradient-to-br from-zinc-900/90 to-zinc-950/90 border border-zinc-800/80 relative overflow-hidden shadow-xl">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none"></div>
-          <div className="flex items-start gap-3">
-            <Sparkles className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-xs lg:text-sm text-zinc-200 font-medium italic">"{getQuoteForDate(todayKey).text}"</p>
-              <p className="text-[11px] text-emerald-400 font-semibold mt-1">— {getQuoteForDate(todayKey).author}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* ================= DASHBOARD TAB ================= */}
-        {activeTab === 'dashboard' && (
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-xl lg:text-2xl font-bold text-white tracking-tight">Executive Dashboard</h2>
-                <p className="text-xs text-zinc-400 mt-0.5">Your daily discipline & routine performance overview.</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-xl text-zinc-300 font-medium">
-                  {formatDisplayDate(todayKey)}
-                </span>
-              </div>
-            </div>
-
-            {/* Metrics Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-zinc-900/70 backdrop-blur-xl border border-zinc-800/80 rounded-2xl p-5 relative overflow-hidden group shadow-xl">
-                <div className="absolute -right-4 -top-4 w-20 h-20 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition-all"></div>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-medium text-zinc-400">Today Completion</span>
-                  <Target className="w-4 h-4 text-emerald-400" />
-                </div>
-                <div className="text-2xl lg:text-3xl font-extrabold text-white">{todayMetrics.pct}%</div>
-                <div className="w-full bg-zinc-800 h-1.5 rounded-full mt-3 overflow-hidden">
-                  <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${todayMetrics.pct}%` }}></div>
-                </div>
-              </div>
-
-              <div className="bg-zinc-900/70 backdrop-blur-xl border border-zinc-800/80 rounded-2xl p-5 relative overflow-hidden group shadow-xl">
-                <div className="absolute -right-4 -top-4 w-20 h-20 bg-amber-500/10 rounded-full blur-xl group-hover:bg-amber-500/20 transition-all"></div>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-medium text-zinc-400">Current Streak</span>
-                  <Flame className="w-4 h-4 text-amber-400" />
-                </div>
-                <div className="text-2xl lg:text-3xl font-extrabold text-white">{analytics.currentStreak} Days</div>
-                <p className="text-[10px] text-zinc-400 mt-2">Best: <span className="text-amber-400 font-semibold">{analytics.bestStreak} Days</span></p>
-              </div>
-
-              <div className="bg-zinc-900/70 backdrop-blur-xl border border-zinc-800/80 rounded-2xl p-5 relative overflow-hidden group shadow-xl">
-                <div className="absolute -right-4 -top-4 w-20 h-20 bg-indigo-500/10 rounded-full blur-xl group-hover:bg-indigo-500/20 transition-all"></div>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-medium text-zinc-400">Weekly Average</span>
-                  <TrendingUp className="w-4 h-4 text-indigo-400" />
-                </div>
-                <div className="text-2xl lg:text-3xl font-extrabold text-white">{analytics.weeklyAvg}%</div>
-                <p className="text-[10px] text-zinc-400 mt-2">Past 7 days performance</p>
-              </div>
-
-              <div className="bg-zinc-900/70 backdrop-blur-xl border border-zinc-800/80 rounded-2xl p-5 relative overflow-hidden group shadow-xl">
-                <div className="absolute -right-4 -top-4 w-20 h-20 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition-all"></div>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-medium text-zinc-400">Overall Consistency</span>
-                  <Award className="w-4 h-4 text-emerald-400" />
-                </div>
-                <div className="text-2xl lg:text-3xl font-extrabold text-white">{analytics.overallConsistency}%</div>
-                <p className="text-[10px] text-zinc-400 mt-2">All-time logged average</p>
-              </div>
-            </div>
-
-            {/* Quick Actions & Durood Summary */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 bg-zinc-900/70 backdrop-blur-xl border border-zinc-800/80 rounded-2xl p-6 shadow-xl">
-                <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-emerald-400" />
-                  <span>Today's Habit Status Breakdown</span>
-                </h3>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                    <span className="text-xs text-emerald-400 font-medium">Completed</span>
-                    <div className="text-2xl font-bold text-emerald-300 mt-1">{todayMetrics.completed}</div>
-                  </div>
-                  <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20">
-                    <span className="text-xs text-rose-400 font-medium">Missed</span>
-                    <div className="text-2xl font-bold text-rose-300 mt-1">{todayMetrics.missed}</div>
-                  </div>
-                  <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
-                    <span className="text-xs text-zinc-400 font-medium">Pending</span>
-                    <div className="text-2xl font-bold text-zinc-200 mt-1">{todayMetrics.pending}</div>
-                  </div>
-                </div>
-                <div className="mt-6 flex gap-3">
-                  <button
-                    onClick={() => setActiveTab('tracker')}
-                    className="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-bold text-xs transition-colors shadow-lg shadow-emerald-500/20"
-                  >
-                    Open Today's Checklist
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('calendar')}
-                    className="px-5 py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-xs transition-colors"
-                  >
-                    View Calendar
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-zinc-900/70 backdrop-blur-xl border border-zinc-800/80 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-white mb-2">Durood Shareef Counter</h3>
-                  <p className="text-xs text-zinc-400 mb-4">Daily Target: {todayMetrics.duroodTarget} repetitions</p>
-                  <div className="text-3xl font-extrabold text-emerald-400 mb-2">{todayMetrics.duroodCount}</div>
-                  <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
-                    <div className="bg-emerald-500 h-full rounded-full transition-all" style={{ width: `${todayMetrics.duroodPct}%` }}></div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setActiveTab('tracker')}
-                  className="mt-6 w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-xs transition-colors"
-                >
-                  Update Durood Count
-                </button>
-              </div>
-            </div>
+            <section className="hx-card p-5">
+              <h3 className="text-sm font-semibold mb-3 text-[color:var(--sun)]">Journal</h3>
+              <textarea value={noteDraft} onChange={(e) => handleNoteChange(e.target.value)} rows={4}
+                placeholder="What went well today? What will you do differently tomorrow?" className="hx-input resize-none" />
+            </section>
           </div>
         )}
 
-        {/* ================= DAILY TRACKER TAB ================= */}
-        {activeTab === 'tracker' && (
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-xl lg:text-2xl font-bold text-white tracking-tight">Daily Habit Tracker</h2>
-                <p className="text-xs text-zinc-400 mt-0.5">Click status to toggle: Empty → Completed (✓) → Missed (✗)</p>
-              </div>
-              <div className="flex items-center gap-2 bg-zinc-900/90 border border-zinc-800 p-1.5 rounded-2xl">
-                <button
-                  onClick={() => setSelectedDate(addDays(selectedDate, -1))}
-                  className="p-2 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 transition-colors"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
-                  className="bg-transparent text-xs text-zinc-100 font-semibold px-2 focus:outline-none cursor-pointer"
-                />
-                <button
-                  onClick={() => setSelectedDate(addDays(selectedDate, 1))}
-                  className="p-2 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 transition-colors"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Habits List Grouped by Category */}
-            <div className="space-y-6">
-              {CATEGORIES.map((cat) => {
-                const catHabits = activeHabits.filter((h) => h.category === cat);
-                if (catHabits.length === 0) return null;
-
-                return (
-                  <div key={cat} className="bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 rounded-2xl p-5 shadow-xl">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-4">{cat}</h3>
-                    <div className="space-y-3">
-                      {catHabits.map((habit) => {
-                        const status = dailyRecords[selectedDate]?.statuses?.[habit.id] || 'empty';
-
-                        if (habit.type === 'numeric') {
-                          return (
-                            <div key={habit.id} className="p-4 rounded-xl bg-zinc-950/60 border border-zinc-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                              <div>
-                                <span className="font-semibold text-sm text-zinc-100">{habit.name}</span>
-                                <p className="text-[11px] text-zinc-400 mt-0.5">Target: {habit.target || 100} per day</p>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  value={dailyRecords[selectedDate]?.statuses?.[habit.id] || ''}
-                                  onChange={(e) => updateHabitStatus(selectedDate, habit.id, Number(e.target.value) || 0)}
-                                  placeholder="0"
-                                  className="w-24 px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700 text-zinc-100 text-sm font-bold text-center focus:outline-none focus:border-emerald-500"
-                                />
-                                <span className="text-xs text-zinc-400 font-medium">Count</span>
-                              </div>
-                            </div>
-                          );
-                        }
-
-                        // Boolean Habit
-                        return (
-                          <div
-                            key={habit.id}
-                            onClick={() => handleCycleBooleanHabit(selectedDate, habit.id)}
-                            className={`p-4 rounded-xl border flex items-center justify-between cursor-pointer transition-all duration-200 ${
-                              status === 'done'
-                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                                : status === 'missed'
-                                ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
-                                : 'bg-zinc-950/60 border-zinc-800/80 text-zinc-300 hover:border-zinc-700'
-                            }`}
-                          >
-                            <span className="font-semibold text-sm">{habit.name}</span>
-                            <div className="flex items-center gap-2">
-                              {status === 'done' && (
-                                <span className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30">
-                                  <CheckCircle2 className="w-4 h-4" /> Completed
-                                </span>
-                              )}
-                              {status === 'missed' && (
-                                <span className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-500/20 text-rose-400 text-xs font-bold border border-rose-500/30">
-                                  <XCircle className="w-4 h-4" /> Missed
-                                </span>
-                              )}
-                              {status === 'empty' && (
-                                <span className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-zinc-900 text-zinc-400 text-xs font-medium border border-zinc-800">
-                                  <Circle className="w-4 h-4" /> Pending
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Daily Note Section */}
-            <div className="bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 rounded-2xl p-5 shadow-xl">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2">Daily Journal & Notes</h3>
-              <textarea
-                value={noteDraft}
-                onChange={(e) => handleNoteChange(e.target.value)}
-                placeholder="Write your reflections, prayers, or key takeaways for this day..."
-                rows={3}
-                className="w-full p-4 rounded-xl bg-zinc-950/80 border border-zinc-800 text-zinc-100 text-sm focus:outline-none focus:border-emerald-500 resize-none transition-colors"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* ================= CALENDAR TAB ================= */}
+        {/* ================= CALENDAR ================= */}
         {activeTab === 'calendar' && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-xl lg:text-2xl font-bold text-white tracking-tight">Calendar & History</h2>
-              <p className="text-xs text-zinc-400 mt-0.5">Select any date to view and edit historical records.</p>
+          <div className="space-y-5 hx-rise">
+            <div className="flex items-center justify-between">
+              <h2 className="hx-serif text-3xl">{monthLabel}</h2>
+              <div className="flex gap-1.5">
+                <button className="hx-ghost !p-2.5" aria-label="Previous month" onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1))}><ChevronLeft className="w-4 h-4" /></button>
+                <button className="hx-ghost !p-2.5" aria-label="Next month" onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1))}><ChevronRight className="w-4 h-4" /></button>
+              </div>
             </div>
-            <div className="bg-zinc-900/70 backdrop-blur-xl border border-zinc-800/80 rounded-2xl p-6 shadow-xl text-center">
-              <p className="text-sm text-zinc-300">Use the date navigator in the Daily Tracker tab to inspect and edit past days securely.</p>
-              <button
-                onClick={() => setActiveTab('tracker')}
-                className="mt-4 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-bold text-xs transition-colors shadow-lg shadow-emerald-500/20"
-              >
-                Go to Daily Tracker
-              </button>
-            </div>
+            <section className="hx-card p-4 sm:p-6">
+              <div className="grid grid-cols-7 gap-1.5 sm:gap-2 text-center text-[11px] text-[color:var(--mute)] mb-2">
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => <span key={i}>{d}</span>)}
+              </div>
+              <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                {cells.map((k, i) => {
+                  if (!k) return <span key={`e${i}`} />;
+                  const logged = !!dailyRecords[k];
+                  const pct = getDayMetrics(k).pct;
+                  const isToday = k === todayKey;
+                  return (
+                    <button key={k} onClick={() => goDay(k)} aria-label={`${formatDisplayDate(k)}: ${pct}% complete`}
+                      className="aspect-square rounded-2xl text-xs font-semibold flex items-center justify-center"
+                      style={{
+                        background: logged ? `rgba(255,194,122,${0.1 + (pct / 100) * 0.75})` : 'rgba(255,236,220,.04)',
+                        color: logged && pct > 55 ? '#2a1420' : 'var(--ink)',
+                        outline: isToday ? '2px solid var(--iris)' : 'none',
+                      }}>
+                      {parseDateKey(k).getDate()}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-[color:var(--mute)] mt-4">Brighter days mean more habits done. Tap a day to edit it.</p>
+            </section>
           </div>
         )}
 
-        {/* ================= STATISTICS TAB ================= */}
+        {/* ================= STATS ================= */}
         {activeTab === 'stats' && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-xl lg:text-2xl font-bold text-white tracking-tight">Analytics & Statistics</h2>
-              <p className="text-xs text-zinc-400 mt-0.5">Comprehensive consistency and discipline metrics.</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-5 rounded-2xl bg-zinc-900/70 border border-zinc-800">
-                <span className="text-xs text-zinc-400 font-medium">7-Day Rolling Average</span>
-                <div className="text-3xl font-extrabold text-white mt-2">{analytics.weeklyAvg}%</div>
+          <div className="space-y-5 hx-rise">
+            <h2 className="hx-serif text-3xl">Your consistency</h2>
+            <section className="hx-card grid grid-cols-3 divide-x divide-[color:var(--line)] py-5 text-center">
+              <div><p className="hx-serif text-3xl">{analytics.weekly}%</p><p className="text-xs text-[color:var(--mute)] mt-1">7-day average</p></div>
+              <div><p className="hx-serif text-3xl">{analytics.monthly}%</p><p className="text-xs text-[color:var(--mute)] mt-1">30-day average</p></div>
+              <div><p className="hx-serif text-3xl">{analytics.overall}%</p><p className="text-xs text-[color:var(--mute)] mt-1">all time</p></div>
+            </section>
+            <section className="hx-card p-6">
+              <h3 className="text-sm font-semibold mb-5">Last 14 days</h3>
+              <div className="flex items-end gap-1.5 h-40">
+                {analytics.last14.map((k) => {
+                  const pct = getDayMetrics(k).pct;
+                  return (
+                    <div key={k} className="flex-1 flex flex-col items-center justify-end h-full gap-1.5" title={`${formatDisplayDate(k)}: ${pct}%`}>
+                      <div className="w-full rounded-full" style={{ height: `${Math.max(pct, 4)}%`, background: pct ? 'linear-gradient(180deg,var(--sun),var(--rose))' : 'rgba(255,236,220,.08)' }} />
+                      <span className="text-[10px] text-[color:var(--mute)]">{parseDateKey(k).getDate()}</span>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="p-5 rounded-2xl bg-zinc-900/70 border border-zinc-800">
-                <span className="text-xs text-zinc-400 font-medium">30-Day Rolling Average</span>
-                <div className="text-3xl font-extrabold text-white mt-2">{analytics.monthlyAvg}%</div>
-              </div>
-              <div className="p-5 rounded-2xl bg-zinc-900/70 border border-zinc-800">
-                <span className="text-xs text-zinc-400 font-medium">Best Streak</span>
-                <div className="text-3xl font-extrabold text-amber-400 mt-2">{analytics.bestStreak} Days</div>
-              </div>
-            </div>
+            </section>
           </div>
         )}
 
-        {/* ================= MANAGE HABITS TAB ================= */}
+        {/* ================= MANAGE ================= */}
         {activeTab === 'manage' && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-xl lg:text-2xl font-bold text-white tracking-tight">Manage Habits</h2>
-              <p className="text-xs text-zinc-400 mt-0.5">Add custom habits and configure your routine.</p>
-            </div>
-
-            {/* Add Habit Form */}
-            <form onSubmit={handleAddHabit} className="bg-zinc-900/70 backdrop-blur-xl border border-zinc-800/80 rounded-2xl p-6 shadow-xl space-y-4">
-              <h3 className="text-sm font-bold text-white">Add New Habit</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1">Habit Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={newHabitName}
-                    onChange={(e) => setNewHabitName(e.target.value)}
-                    placeholder="e.g. Read 10 Pages"
-                    className="w-full px-4 py-3 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-100 text-sm focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1">Category</label>
-                  <select
-                    value={newHabitCategory}
-                    onChange={(e) => setNewHabitCategory(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-100 text-sm focus:outline-none focus:border-emerald-500"
-                  >
-                    {CATEGORIES.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                </div>
+          <div className="space-y-5 hx-rise">
+            <h2 className="hx-serif text-3xl">Your habits</h2>
+            <form onSubmit={handleAddHabit} className="hx-card p-5 space-y-3">
+              <h3 className="text-sm font-semibold text-[color:var(--sun)]">Add a habit</h3>
+              <input className="hx-input" required placeholder="e.g. Read 10 pages" aria-label="Habit name" value={newHabitName} onChange={(e) => setNewHabitName(e.target.value)} />
+              <div className="grid grid-cols-2 gap-3">
+                <select className="hx-input" aria-label="Category" value={newHabitCategory} onChange={(e) => setNewHabitCategory(e.target.value)}>
+                  {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <select className="hx-input" aria-label="Type" value={newHabitType} onChange={(e) => setNewHabitType(e.target.value)}>
+                  <option value="boolean">Done / missed</option>
+                  <option value="numeric">Count</option>
+                </select>
               </div>
-              <button
-                type="submit"
-                className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-bold text-xs transition-colors shadow-lg shadow-emerald-500/20"
-              >
-                Add Habit
-              </button>
+              {newHabitType === 'numeric' && (
+                <input className="hx-input" type="number" min="1" aria-label="Daily target" placeholder="Daily target" value={newHabitTarget} onChange={(e) => setNewHabitTarget(e.target.value)} />
+              )}
+              <button type="submit" className="hx-btn flex items-center gap-2"><Plus className="w-4 h-4" />Add habit</button>
             </form>
 
-            {/* Existing Habits List */}
-            <div className="bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 rounded-2xl p-6 shadow-xl space-y-3">
-              <h3 className="text-sm font-bold text-white mb-2">Active Habits</h3>
-              {activeHabits.map((habit) => (
-                <div key={habit.id} className="p-4 rounded-xl bg-zinc-950/60 border border-zinc-800 flex items-center justify-between">
-                  <div>
-                    <span className="font-semibold text-sm text-zinc-100">{habit.name}</span>
-                    <span className="ml-3 text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">{habit.category}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <section className="hx-card p-5">
+              <ul className="divide-y divide-[color:var(--line)]">
+                {activeHabits.map((h) => (
+                  <li key={h.id} className="flex items-center justify-between gap-3 py-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{h.name}</p>
+                      <p className="text-xs text-[color:var(--mute)]">{h.category}{h.type === 'numeric' ? ` · target ${h.target}` : ''}</p>
+                    </div>
+                    <div className="flex gap-1.5 shrink-0">
+                      <button className="hx-ghost !p-2.5" aria-label={`Archive ${h.name}`} onClick={() => archiveHabit(h)}><Archive className="w-4 h-4" /></button>
+                      <button className="hx-ghost !p-2.5 !text-[#ff9db9]" aria-label={`Delete ${h.name}`} onClick={() => deleteHabit(h)}><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
           </div>
         )}
-      </main>
+      </div>
 
-      {/* iPhone Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-zinc-950/90 backdrop-blur-2xl border-t border-zinc-800/80 px-4 py-2 flex items-center justify-around lg:hidden">
-        {[
-          { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-          { id: 'tracker', label: 'Tracker', icon: ListChecks },
-          { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
-          { id: 'stats', label: 'Stats', icon: BarChart3 },
-          { id: 'manage', label: 'Manage', icon: Settings }
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
+      {/* floating nav */}
+      <nav aria-label="Main" className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 flex gap-1 p-1.5 rounded-full border border-[color:var(--line)]"
+        style={{ background: 'rgba(23,21,48,.82)', backdropFilter: 'blur(18px)', paddingBottom: 'calc(0.375rem + env(safe-area-inset-bottom, 0px))' }}>
+        {TABS.map(({ id, label, icon: Icon }) => {
+          const active = activeTab === id;
           return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center py-1 px-3 rounded-xl transition-all ${
-                isActive ? 'text-emerald-400 bg-emerald-500/10 scale-105' : 'text-zinc-400 hover:text-zinc-200'
-              }`}
-            >
-              <Icon className="w-5 h-5" />
-              <span className="text-[10px] font-medium mt-1">{tab.label}</span>
+            <button key={id} onClick={() => setActiveTab(id)} aria-current={active ? 'page' : undefined}
+              className={`flex items-center gap-2 rounded-full px-3.5 py-2.5 text-xs font-semibold transition-colors ${active ? 'text-[#2a1420]' : 'text-[color:var(--mute)]'}`}
+              style={active ? { background: 'linear-gradient(135deg,var(--sun),var(--coral))' } : undefined}>
+              <Icon className="w-4 h-4" />
+              {active && <span>{label}</span>}
             </button>
           );
         })}
