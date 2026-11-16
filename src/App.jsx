@@ -81,42 +81,101 @@ const greeting = () => {
 };
 
 // ============================================================================
-// STYLES: pre-dawn palette, injected once
+// STYLES: plain CSS only (no Tailwind needed)
 // ============================================================================
 const STYLES = `
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Manrope:wght@400;500;600;700&display=swap');
-:root{
-  --night:#0f0e1c; --deep:#171530; --veil:#211e45; --line:rgba(255,236,220,.09);
-  --ink:#f6eee6; --mute:#a59fbd; --sun:#ffc27a; --coral:#ff8a7a; --rose:#e86f9a; --iris:#8b7cf8;
-}
-.hx{font-family:'Manrope',system-ui,sans-serif;color:#f6eee6;background:var(--night);min-height:100vh;
-  background-image:radial-gradient(900px 500px at 50% -10%,rgba(139,124,248,.28),transparent 70%),
-  radial-gradient(700px 400px at 100% 0%,rgba(255,138,122,.12),transparent 70%)}
+html,body,#root{margin:0;min-height:100%;background:#0f0e1c}
+.hx,.hx *{box-sizing:border-box}
+.hx{font-family:'Manrope',system-ui,sans-serif;color:#f6eee6;min-height:100vh;font-size:15px;line-height:1.45;
+  background-color:#0f0e1c;
+  background-image:radial-gradient(900px 500px at 50% -10%,rgba(139,124,248,.30),transparent 70%),radial-gradient(700px 400px at 100% 0%,rgba(255,138,122,.14),transparent 70%);
+  background-attachment:fixed}
+.hx h1,.hx h2,.hx h3,.hx p,.hx blockquote,.hx ul{margin:0;padding:0}
+.hx ul{list-style:none}
+.hx button{font-family:inherit;color:#f6eee6;background:none;border:0;cursor:pointer;padding:0}
+.hx input,.hx select,.hx textarea{font-family:inherit}
+.serif{font-family:'Fraunces',Georgia,serif;font-weight:400;letter-spacing:-.01em}
+.mute{color:#a59fbd}.sun{color:#ffc27a}.coral{color:#ff8a7a}.pink{color:#ff9db9}
+.xs{font-size:12px}.sm{font-size:13.5px}
+.row{display:flex;align-items:center}.between{justify-content:space-between}.end{align-items:flex-end}
+.g8{gap:8px}.g12{gap:12px}.g16{gap:16px}
+.center{text-align:center}.grow{flex:1;min-width:0}
+.stack>*+*{margin-top:18px}.form>*+*{margin-top:12px}
 
-.hx-mute{color:#a59fbd}.hx-sun{color:#ffc27a}.hx-coral{color:#ff8a7a}.hx-pink{color:#ff9db9}.hx-dark{color:#2a1420}
-.hx-hover-sun:hover{color:#ffc27a}
-.hx-divide>*+*{border-top:1px solid rgba(255,236,220,.09)}
-.hx-divide-x>*+*{border-left:1px solid rgba(255,236,220,.09)}
-.hx-border{border-color:rgba(255,236,220,.09)}
-.hx-err{background:rgba(232,111,154,.1);border:1px solid rgba(232,111,154,.3)}
-.hx-dark-scheme{color-scheme:dark}
-.hx-icon{padding:.65rem!important}.hx-slim{padding-top:.5rem!important;padding-bottom:.5rem!important}.hx-count{width:6rem!important}
-.hx button,.hx select,.hx textarea,.hx input{font-family:inherit}
-.hx h1,.hx h2,.hx h3,.hx p,.hx blockquote{margin:0}
-:where(.hx) button{color:#f6eee6;background:none;border:0;cursor:pointer}
-:where(.hx) ul{list-style:none;margin:0;padding:0}
-.hx .hx-btn{color:#2a1420}
-.hx-serif{font-family:'Fraunces',Georgia,serif;font-weight:400;letter-spacing:-.01em}
-.hx-card{background:linear-gradient(180deg,rgba(33,30,69,.7),rgba(23,21,48,.7));border:1px solid var(--line);border-radius:28px}
-.hx-input{width:100%;background:rgba(15,14,28,.7);border:1px solid var(--line);border-radius:16px;padding:.8rem 1rem;color:#f6eee6;font-size:.9rem;outline:none}
-.hx-input:focus{border-color:#ffc27a}
-.hx-btn{background:linear-gradient(135deg,#ffc27a,#ff8a7a);color:#2a1420;font-weight:700;border-radius:999px;padding:.8rem 1.4rem;font-size:.85rem}
-.hx-btn:disabled{opacity:.5}
-.hx-ghost{background:rgba(255,236,220,.06);border:1px solid var(--line);color:#f6eee6;border-radius:999px;padding:.7rem 1.2rem;font-size:.8rem;font-weight:600}
+.wrap{max-width:720px;margin:0 auto;padding:28px 20px 140px}
+.top{margin-bottom:28px}
+.card{background:linear-gradient(180deg,rgba(38,34,78,.75),rgba(24,22,50,.75));border:1px solid rgba(255,236,220,.09);border-radius:28px;padding:24px;box-shadow:0 20px 50px -25px rgba(0,0,0,.7)}
+.card h3.t{font-size:14px;font-weight:700;color:#ffc27a;margin-bottom:6px}
+.page-title{font-size:34px;line-height:1.1}
+.hero{text-align:center;padding:30px 24px 28px}
+.hero .num{font-size:64px;line-height:1;margin-top:-58px;position:relative}
+.hero .num small{font-size:24px;color:#a59fbd}
+.hero .btn{margin-top:24px}
+.arc{display:block;width:100%;max-width:380px;margin:10px auto 0}
+
+.strip{display:grid;grid-template-columns:repeat(3,1fr);padding:22px 8px;text-align:center}
+.strip>div+div{border-left:1px solid rgba(255,236,220,.09)}
+.strip .v{font-size:30px;display:flex;align-items:center;justify-content:center;gap:6px}
+.strip .l{font-size:12px;color:#a59fbd;margin-top:4px}
+.bar{height:8px;border-radius:999px;background:rgba(255,255,255,.09);overflow:hidden;margin-top:16px}
+.bar>div{height:100%;border-radius:999px;background:linear-gradient(90deg,#8b7cf8,#e86f9a,#ffc27a);transition:width .6s ease}
+.quote{padding:10px 6px}.quote p{font-size:21px;line-height:1.35}.quote footer{font-size:12px;color:#ffc27a;margin-top:12px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#ffc27a,#ff8a7a)!important;color:#2a1420!important;font-weight:700;font-size:14px;border-radius:999px;padding:14px 26px;box-shadow:0 10px 28px -8px rgba(255,138,122,.55);transition:transform .15s,box-shadow .15s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 14px 32px -8px rgba(255,138,122,.7)}
+.btn:active{transform:translateY(0)}.btn:disabled{opacity:.5;transform:none}
+.btn.full{width:100%}
+.ghost{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:rgba(255,236,220,.06)!important;border:1px solid rgba(255,236,220,.12)!important;border-radius:999px;padding:10px 16px;font-size:13px;font-weight:600;transition:background .15s,border-color .15s}
+.ghost:hover{background:rgba(255,236,220,.12)!important;border-color:rgba(255,194,122,.4)!important}
+.ghost.full{width:100%;padding:13px}
+.ghost.icon{width:40px;height:40px;padding:0}
+.ghost.danger:hover{background:rgba(232,111,154,.18)!important;border-color:rgba(232,111,154,.5)!important;color:#ff9db9}
+.link{font-size:13px;color:#a59fbd!important}.link:hover{color:#ffc27a!important}
+
+.input{display:block;width:100%;background:rgba(15,14,28,.75);border:1px solid rgba(255,236,220,.12);border-radius:16px;padding:13px 16px;color:#f6eee6;font-size:14.5px;outline:none;transition:border-color .15s,box-shadow .15s}
+.input::placeholder{color:#7d779a}
+.input:focus{border-color:#ffc27a;box-shadow:0 0 0 4px rgba(255,194,122,.12)}
+select.input{appearance:none;-webkit-appearance:none;cursor:pointer;padding-right:40px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23a59fbd' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 16px center}
+select.input option{background:#171530;color:#f6eee6}
+textarea.input{resize:none;line-height:1.5}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.count{width:96px;text-align:center;font-weight:700}
+.date{background:transparent;border:0;color:#f6eee6;font-size:13px;font-weight:600;cursor:pointer;color-scheme:dark;width:122px;outline:none}
+.err{display:flex;gap:10px;margin-top:20px;padding:12px 14px;border-radius:16px;background:rgba(232,111,154,.1);border:1px solid rgba(232,111,154,.3);color:#ff9db9;font-size:12.5px}
+
+.habit{display:flex;align-items:center;gap:16px;padding:14px 6px;cursor:pointer;border-radius:16px;transition:background .15s}
+.habit+.habit,.item+.item{border-top:1px solid rgba(255,236,220,.08)}
+.habit:hover{background:rgba(255,236,220,.04)}
+.habit .name{flex:1;font-weight:600;font-size:14.5px}
+.habit.done .name{color:#a59fbd;text-decoration:line-through;text-decoration-color:rgba(255,194,122,.6)}
+.circle{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .15s}
+.circle:hover{transform:scale(1.08)}
+.item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 6px}
+
+.cal-head{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;text-align:center;font-size:11px;color:#a59fbd;margin-bottom:8px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.day{aspect-ratio:1;border-radius:16px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;transition:transform .15s}
+.day:hover{transform:scale(1.07)}
+.bars{display:flex;align-items:flex-end;gap:6px;height:170px}
+.bars>div{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px}
+.bars i{display:block;width:100%;border-radius:999px;transition:height .5s}
+.bars span{font-size:10px;color:#a59fbd}
+
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:60;padding:11px 20px;border-radius:999px;font-size:13px;font-weight:600}
+.nav{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:50;display:flex;gap:4px;padding:6px;border-radius:999px;border:1px solid rgba(255,236,220,.12);background:rgba(23,21,48,.85);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 20px 40px -10px rgba(0,0,0,.7);margin-bottom:env(safe-area-inset-bottom,0px)}
+.nav button{display:flex;align-items:center;gap:8px;border-radius:999px;padding:11px 15px;font-size:13px;font-weight:700;color:#a59fbd;transition:all .2s}
+.nav button:hover{color:#f6eee6}
+.nav button.on{background:linear-gradient(135deg,#ffc27a,#ff8a7a);color:#2a1420;box-shadow:0 8px 20px -6px rgba(255,138,122,.6)}
+.auth{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.auth .card{width:100%;max-width:420px;padding:34px 30px}
+.rise{animation:rise .6s ease-out both}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 .hx button:focus-visible,.hx input:focus-visible,.hx select:focus-visible{outline:2px solid #ffc27a;outline-offset:2px}
-@keyframes hx-rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
-.hx-rise{animation:hx-rise .7s ease-out both}
-@media (prefers-reduced-motion:reduce){.hx-rise{animation:none}*{transition:none!important}}
+@media (max-width:480px){.page-title{font-size:28px}.hero .num{font-size:54px}.nav button{padding:11px 12px}.two{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){.rise{animation:none}*{transition:none!important}}
 `;
 
 // ============================================================================
@@ -128,17 +187,15 @@ function SunArc({ pct }) {
   const x = cx - r * Math.cos(Math.PI * p);
   const y = cy - r * Math.sin(Math.PI * p);
   const len = Math.PI * r;
+  const d = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`;
   return (
-    <svg viewBox="0 0 260 150" className="w-full max-w-sm mx-auto" role="img" aria-label={`${pct}% of today's habits completed`}>
+    <svg viewBox="0 0 260 150" className="arc" role="img" aria-label={`${pct}% of today's habits completed`}>
       <defs>
-        <linearGradient id="arc" x1="0" x2="1">
-          <stop offset="0" stopColor="#8b7cf8" /><stop offset=".5" stopColor="#e86f9a" /><stop offset="1" stopColor="#ffc27a" />
-        </linearGradient>
+        <linearGradient id="arcg" x1="0" x2="1"><stop offset="0" stopColor="#8b7cf8" /><stop offset=".5" stopColor="#e86f9a" /><stop offset="1" stopColor="#ffc27a" /></linearGradient>
         <radialGradient id="glow"><stop offset="0" stopColor="#ffc27a" stopOpacity=".9" /><stop offset="1" stopColor="#ffc27a" stopOpacity="0" /></radialGradient>
       </defs>
-      <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`} fill="none" stroke="rgba(255,236,220,.08)" strokeWidth="14" strokeLinecap="round" />
-      <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`} fill="none" stroke="url(#arc)" strokeWidth="14" strokeLinecap="round"
-        strokeDasharray={len} strokeDashoffset={len * (1 - p)} style={{ transition: 'stroke-dashoffset .9s ease' }} />
+      <path d={d} fill="none" stroke="rgba(255,236,220,.08)" strokeWidth="14" strokeLinecap="round" />
+      <path d={d} fill="none" stroke="url(#arcg)" strokeWidth="14" strokeLinecap="round" strokeDasharray={len} strokeDashoffset={len * (1 - p)} style={{ transition: 'stroke-dashoffset .9s ease' }} />
       <circle cx={x} cy={y} r="26" fill="url(#glow)" />
       <circle cx={x} cy={y} r="9" fill="#ffe3b8" />
       <line x1="10" x2="250" y1={cy + 8} y2={cy + 8} stroke="rgba(255,236,220,.12)" />
@@ -151,15 +208,11 @@ function StateButton({ status, onClick }) {
     ? { background: '#ffc27a', borderColor: '#ffc27a', color: '#2a1420' }
     : status === 'missed'
     ? { background: 'rgba(232,111,154,.2)', borderColor: 'rgba(232,111,154,.6)', color: '#ff9db9' }
-    : { background: 'transparent', borderColor: 'rgba(255,236,220,.22)', color: 'transparent' };
+    : { background: 'transparent', borderColor: 'rgba(255,236,220,.25)', color: 'transparent' };
   return (
-    <button
-      onClick={onClick}
-      className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-      style={{ ...look, borderWidth: 1, borderStyle: 'solid', transition: 'all .2s' }}
-      aria-label={`Status: ${status === 'empty' ? 'pending' : status}. Tap to change.`}
-    >
-      {status === 'missed' ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
+    <button onClick={onClick} className="circle" style={{ ...look, border: '1.5px solid ' + look.borderColor }}
+      aria-label={`Status: ${status === 'empty' ? 'pending' : status}. Tap to change.`}>
+      {status === 'missed' ? <X size={16} /> : <Check size={16} strokeWidth={3} />}
     </button>
   );
 }
@@ -365,51 +418,39 @@ export default function App() {
   // ============================== RENDER ==============================
   if (authLoading) {
     return (
-      <div className="hx flex items-center justify-center">
+      <div className="hx auth">
         <style>{STYLES}</style>
-        <p className="hx-serif text-xl hx-mute">Loading your day…</p>
+        <p className="serif mute" style={{ fontSize: 22 }}>Loading your day…</p>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="hx flex items-center justify-center p-5">
+      <div className="hx auth">
         <style>{STYLES}</style>
-        <div className="hx-card w-full max-w-md p-8 hx-rise">
-          <h1 className="hx-serif text-4xl leading-tight">Rise early.<br />Stay steady.</h1>
-          <p className="text-sm hx-mute mt-3">HabitX tracks your prayers, discipline, health and creative work in one daily checklist.</p>
-
-          {authError && (
-            <div className="mt-5 p-3 rounded-2xl hx-err hx-pink text-xs flex gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" /><span>{authError}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleEmailAuth} className="mt-6 space-y-3">
-            {authMode === 'signup' && (
-              <input className="hx-input" required placeholder="Your name" aria-label="Your name" value={authName} onChange={(e) => setAuthName(e.target.value)} />
-            )}
-            <input className="hx-input" type="email" required placeholder="Email" aria-label="Email" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} />
-            <input className="hx-input" type="password" required placeholder="Password" aria-label="Password" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} />
-            <button type="submit" disabled={authSubmitting} className="hx-btn w-full">
-              {authSubmitting ? 'Please wait…' : authMode === 'signup' ? 'Create account' : 'Sign in'}
-            </button>
+        <div className="card rise">
+          <h1 className="serif" style={{ fontSize: 40, lineHeight: 1.1 }}>Rise early.<br />Stay steady.</h1>
+          <p className="mute sm" style={{ marginTop: 14 }}>HabitX tracks your prayers, discipline, health and creative work in one daily checklist.</p>
+          {authError && (<div className="err"><AlertCircle size={16} style={{ flexShrink: 0 }} /><span>{authError}</span></div>)}
+          <form onSubmit={handleEmailAuth} className="form" style={{ marginTop: 24 }}>
+            {authMode === 'signup' && (<input className="input" required placeholder="Your name" aria-label="Your name" value={authName} onChange={(e) => setAuthName(e.target.value)} />)}
+            <input className="input" type="email" required placeholder="Email" aria-label="Email" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} />
+            <input className="input" type="password" required placeholder="Password" aria-label="Password" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} />
+            <button type="submit" disabled={authSubmitting} className="btn full">{authSubmitting ? 'Please wait…' : authMode === 'signup' ? 'Create account' : 'Sign in'}</button>
           </form>
-
-          <button onClick={handleGuest} disabled={authSubmitting} className="hx-ghost w-full mt-3">Continue as guest</button>
-          <button onClick={() => { setAuthMode(authMode === 'login' ? 'signup' : 'login'); setAuthError(''); }}
-            className="block mx-auto mt-5 text-xs hx-mute hover:hx-sun">
-            {authMode === 'login' ? 'New here? Create an account' : 'Have an account? Sign in'}
-          </button>
+          <button onClick={handleGuest} disabled={authSubmitting} className="ghost full" style={{ marginTop: 12 }}>Continue as guest</button>
+          <div className="center" style={{ marginTop: 20 }}>
+            <button className="link" onClick={() => { setAuthMode(authMode === 'login' ? 'signup' : 'login'); setAuthError(''); }}>
+              {authMode === 'login' ? 'New here? Create an account' : 'Have an account? Sign in'}
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   const firstName = (user.displayName || '').split(' ')[0];
-
-  // month grid
   const monthLabel = monthCursor.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   const firstWeekday = monthCursor.getDay();
   const daysInMonth = new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 0).getDate();
@@ -417,104 +458,83 @@ export default function App() {
     getLocalDateKey(new Date(monthCursor.getFullYear(), monthCursor.getMonth(), i + 1)))];
 
   return (
-    <div className="hx pb-32">
+    <div className="hx">
       <style>{STYLES}</style>
+      {toast && <div role="status" className="card toast">{toast}</div>}
 
-      {toast && (
-        <div role="status" className="fixed top-5 left-1/2 -translate-x-1/2 z-50 hx-card px-5 py-2.5 text-xs font-semibold">{toast}</div>
-      )}
-
-      <div className="max-w-3xl mx-auto px-5 pt-8">
-        {/* top bar */}
-        <header className="flex items-center justify-between mb-8">
-          <p className="text-xs hx-mute flex items-center gap-2">
-            <Cloud className="w-3.5 h-3.5" />
-            {syncStatus === 'synced' ? 'Saved' : syncStatus === 'syncing' ? 'Saving…' : 'Not saved. Check your connection.'}
-          </p>
-          <button onClick={handleLogout} className="hx-ghost flex items-center gap-2 !py-2"><LogOut className="w-3.5 h-3.5" />Sign out</button>
+      <div className="wrap">
+        <header className="row between top">
+          <p className="row g8 mute xs"><Cloud size={14} />{syncStatus === 'synced' ? 'Saved' : syncStatus === 'syncing' ? 'Saving…' : 'Not saved. Check your connection.'}</p>
+          <button onClick={handleLogout} className="ghost"><LogOut size={14} />Sign out</button>
         </header>
 
-        {/* ================= TODAY ================= */}
         {activeTab === 'today' && (
-          <div className="space-y-5 hx-rise">
-            <section className="hx-card px-6 pt-8 pb-7 text-center">
-              <p className="text-sm hx-mute">{greeting()}{firstName ? `, ${firstName}` : ''}</p>
+          <div className="stack rise">
+            <section className="card hero">
+              <p className="mute sm">{greeting()}{firstName ? `, ${firstName}` : ''}</p>
               <SunArc pct={today.pct} />
-              <div className="-mt-10 relative">
-                <p className="hx-serif text-6xl">{today.pct}<span className="text-2xl hx-mute">%</span></p>
-                <p className="text-sm hx-mute mt-1">{today.completed} of {today.total} done · {formatDisplayDate(todayKey)}</p>
-              </div>
-              <button onClick={() => { setSelectedDate(todayKey); setActiveTab('tracker'); }} className="hx-btn mt-6">Open today’s checklist</button>
+              <div className="num serif">{today.pct}<small>%</small></div>
+              <p className="mute sm" style={{ marginTop: 8 }}>{today.completed} of {today.total} done · {formatDisplayDate(todayKey)}</p>
+              <button className="btn" onClick={() => { setSelectedDate(todayKey); setActiveTab('tracker'); }}>Open today’s checklist</button>
             </section>
 
-            <section className="hx-card grid grid-cols-3 hx-divide-x py-5 text-center">
-              <div><p className="hx-serif text-3xl flex items-center justify-center gap-1.5"><Flame className="w-5 h-5 hx-coral" />{analytics.current}</p><p className="text-xs hx-mute mt-1">day streak</p></div>
-              <div><p className="hx-serif text-3xl">{analytics.weekly}%</p><p className="text-xs hx-mute mt-1">last 7 days</p></div>
-              <div><p className="hx-serif text-3xl">{analytics.best}</p><p className="text-xs hx-mute mt-1">best streak</p></div>
+            <section className="card strip">
+              <div><p className="v serif"><Flame size={20} className="coral" />{analytics.current}</p><p className="l">day streak</p></div>
+              <div><p className="v serif">{analytics.weekly}%</p><p className="l">last 7 days</p></div>
+              <div><p className="v serif">{analytics.best}</p><p className="l">best streak</p></div>
             </section>
 
-            <section className="hx-card p-6">
-              <div className="flex items-end justify-between">
-                <div>
-                  <h2 className="text-sm font-semibold">Durood Shareef</h2>
-                  <p className="text-xs hx-mute mt-0.5">Target {today.duroodTarget} today</p>
-                </div>
-                <p className="hx-serif text-4xl">{today.duroodCount}</p>
+            <section className="card">
+              <div className="row between end">
+                <div><h3 style={{ fontSize: 15, fontWeight: 700 }}>Durood Shareef</h3><p className="mute xs" style={{ marginTop: 2 }}>Target {today.duroodTarget} today</p></div>
+                <p className="serif" style={{ fontSize: 40, lineHeight: 1 }}>{today.duroodCount}</p>
               </div>
-              <div className="h-2 rounded-full bg-white/10 mt-4 overflow-hidden">
-                <div className="h-full rounded-full" style={{ width: `${today.duroodPct}%`, background: 'linear-gradient(90deg,#8b7cf8,#e86f9a,#ffc27a)', transition: 'width .6s ease' }} />
-              </div>
+              <div className="bar"><div style={{ width: `${today.duroodPct}%` }} /></div>
             </section>
 
-            <blockquote className="px-3 pt-3">
-              <p className="hx-serif text-xl leading-snug">“{quote.text}”</p>
-              <footer className="text-xs hx-sun mt-3">{quote.author}</footer>
+            <blockquote className="quote">
+              <p className="serif">“{quote.text}”</p>
+              <footer>{quote.author}</footer>
             </blockquote>
           </div>
         )}
 
-        {/* ================= TRACKER ================= */}
         {activeTab === 'tracker' && (
-          <div className="space-y-5 hx-rise">
-            <div className="flex items-center justify-between">
-              <h2 className="hx-serif text-3xl">{selectedDate === todayKey ? 'Today' : formatDisplayDate(selectedDate)}</h2>
-              <div className="flex items-center gap-1.5">
-                <button className="hx-ghost hx-icon" aria-label="Previous day" onClick={() => setSelectedDate(addDays(selectedDate, -1))}><ChevronLeft className="w-4 h-4" /></button>
-                <input type="date" aria-label="Pick a date" value={selectedDate} onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
-                  className="bg-transparent text-xs font-semibold px-1 w-[7.5rem] cursor-pointer hx-dark-scheme" />
-                <button className="hx-ghost hx-icon" aria-label="Next day" onClick={() => setSelectedDate(addDays(selectedDate, 1))}><ChevronRight className="w-4 h-4" /></button>
+          <div className="stack rise">
+            <div className="row between" style={{ flexWrap: 'wrap', gap: 12 }}>
+              <h2 className="serif page-title">{selectedDate === todayKey ? 'Today' : formatDisplayDate(selectedDate)}</h2>
+              <div className="row g8">
+                <button className="ghost icon" aria-label="Previous day" onClick={() => setSelectedDate(addDays(selectedDate, -1))}><ChevronLeft size={16} /></button>
+                <input type="date" className="date" aria-label="Pick a date" value={selectedDate} onChange={(e) => e.target.value && setSelectedDate(e.target.value)} />
+                <button className="ghost icon" aria-label="Next day" onClick={() => setSelectedDate(addDays(selectedDate, 1))}><ChevronRight size={16} /></button>
               </div>
             </div>
-            <p className="text-xs hx-mute -mt-2">Tap the circle to cycle: pending, done, missed.</p>
+            <p className="mute xs" style={{ marginTop: 6 }}>Tap the circle to cycle: pending, done, missed.</p>
 
             {CATEGORIES.map((cat) => {
               const list = activeHabits.filter((h) => h.category === cat);
               if (!list.length) return null;
               return (
-                <section key={cat} className="hx-card p-5">
-                  <h3 className="text-sm font-semibold mb-3 hx-sun">{cat}</h3>
-                  <ul className="divide-y hx-divide">
+                <section key={cat} className="card" style={{ padding: '20px 18px' }}>
+                  <h3 className="t" style={{ paddingLeft: 6 }}>{cat}</h3>
+                  <ul>
                     {list.map((h) => {
                       const val = dailyRecords[selectedDate]?.statuses?.[h.id];
                       if (h.type === 'numeric') {
                         return (
-                          <li key={h.id} className="flex items-center justify-between gap-3 py-3">
-                            <div>
-                              <p className="text-sm font-medium">{h.name}</p>
-                              <p className="text-xs hx-mute">Target {h.target || 100} per day</p>
-                            </div>
-                            <input type="number" min="0" inputMode="numeric" value={val || ''} placeholder="0" aria-label={`${h.name} count`}
-                              onChange={(e) => updateHabitStatus(selectedDate, h.id, Number(e.target.value) || 0)}
-                              className="hx-input hx-count text-center font-bold" />
+                          <li key={h.id} className="item">
+                            <div><p style={{ fontWeight: 600, fontSize: 14.5 }}>{h.name}</p><p className="mute xs">Target {h.target || 100} per day</p></div>
+                            <input type="number" min="0" inputMode="numeric" className="input count" value={val || ''} placeholder="0" aria-label={`${h.name} count`}
+                              onChange={(e) => updateHabitStatus(selectedDate, h.id, Number(e.target.value) || 0)} />
                           </li>
                         );
                       }
                       const status = val || 'empty';
                       return (
-                        <li key={h.id} className="flex items-center gap-4 py-3 cursor-pointer" onClick={() => cycleHabit(selectedDate, h.id)}>
+                        <li key={h.id} className={`habit ${status === 'done' ? 'done' : ''}`} onClick={() => cycleHabit(selectedDate, h.id)}>
                           <StateButton status={status} onClick={(e) => { e.stopPropagation(); cycleHabit(selectedDate, h.id); }} />
-                          <p className={`text-sm font-medium flex-1 ${status === 'done' ? 'hx-mute line-through ' : ''}`}>{h.name}</p>
-                          {status === 'missed' && <span className="text-xs hx-pink">Missed</span>}
+                          <span className="name">{h.name}</span>
+                          {status === 'missed' && <span className="pink xs">Missed</span>}
                         </li>
                       );
                     })}
@@ -523,70 +543,62 @@ export default function App() {
               );
             })}
 
-            <section className="hx-card p-5">
-              <h3 className="text-sm font-semibold mb-3 hx-sun">Journal</h3>
-              <textarea value={noteDraft} onChange={(e) => handleNoteChange(e.target.value)} rows={4}
-                placeholder="What went well today? What will you do differently tomorrow?" className="hx-input resize-none" />
+            <section className="card">
+              <h3 className="t" style={{ marginBottom: 12 }}>Journal</h3>
+              <textarea className="input" rows={4} value={noteDraft} onChange={(e) => handleNoteChange(e.target.value)}
+                placeholder="What went well today? What will you do differently tomorrow?" />
             </section>
           </div>
         )}
 
-        {/* ================= CALENDAR ================= */}
         {activeTab === 'calendar' && (
-          <div className="space-y-5 hx-rise">
-            <div className="flex items-center justify-between">
-              <h2 className="hx-serif text-3xl">{monthLabel}</h2>
-              <div className="flex gap-1.5">
-                <button className="hx-ghost hx-icon" aria-label="Previous month" onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1))}><ChevronLeft className="w-4 h-4" /></button>
-                <button className="hx-ghost hx-icon" aria-label="Next month" onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1))}><ChevronRight className="w-4 h-4" /></button>
+          <div className="stack rise">
+            <div className="row between">
+              <h2 className="serif page-title">{monthLabel}</h2>
+              <div className="row g8">
+                <button className="ghost icon" aria-label="Previous month" onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1))}><ChevronLeft size={16} /></button>
+                <button className="ghost icon" aria-label="Next month" onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1))}><ChevronRight size={16} /></button>
               </div>
             </div>
-            <section className="hx-card p-4 sm:p-6">
-              <div className="grid grid-cols-7 gap-1.5 sm:gap-2 text-center text-[11px] hx-mute mb-2">
-                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => <span key={i}>{d}</span>)}
-              </div>
-              <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+            <section className="card">
+              <div className="cal-head">{['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => <span key={i}>{d}</span>)}</div>
+              <div className="cal">
                 {cells.map((k, i) => {
                   if (!k) return <span key={`e${i}`} />;
                   const logged = !!dailyRecords[k];
                   const pct = getDayMetrics(k).pct;
-                  const isToday = k === todayKey;
                   return (
-                    <button key={k} onClick={() => goDay(k)} aria-label={`${formatDisplayDate(k)}: ${pct}% complete`}
-                      className="aspect-square rounded-2xl text-xs font-semibold flex items-center justify-center"
+                    <button key={k} className="day" onClick={() => goDay(k)} aria-label={`${formatDisplayDate(k)}: ${pct}% complete`}
                       style={{
-                        background: logged ? `rgba(255,194,122,${0.1 + (pct / 100) * 0.75})` : 'rgba(255,236,220,.04)',
+                        background: logged ? `rgba(255,194,122,${0.12 + (pct / 100) * 0.8})` : 'rgba(255,236,220,.05)',
                         color: logged && pct > 55 ? '#2a1420' : '#f6eee6',
-                        outline: isToday ? '2px solid #8b7cf8' : 'none',
-                      }}>
-                      {parseDateKey(k).getDate()}
-                    </button>
+                        boxShadow: k === todayKey ? '0 0 0 2px #8b7cf8' : 'none',
+                      }}>{parseDateKey(k).getDate()}</button>
                   );
                 })}
               </div>
-              <p className="text-xs hx-mute mt-4">Brighter days mean more habits done. Tap a day to edit it.</p>
+              <p className="mute xs" style={{ marginTop: 16 }}>Brighter days mean more habits done. Tap a day to edit it.</p>
             </section>
           </div>
         )}
 
-        {/* ================= STATS ================= */}
         {activeTab === 'stats' && (
-          <div className="space-y-5 hx-rise">
-            <h2 className="hx-serif text-3xl">Your consistency</h2>
-            <section className="hx-card grid grid-cols-3 hx-divide-x py-5 text-center">
-              <div><p className="hx-serif text-3xl">{analytics.weekly}%</p><p className="text-xs hx-mute mt-1">7-day average</p></div>
-              <div><p className="hx-serif text-3xl">{analytics.monthly}%</p><p className="text-xs hx-mute mt-1">30-day average</p></div>
-              <div><p className="hx-serif text-3xl">{analytics.overall}%</p><p className="text-xs hx-mute mt-1">all time</p></div>
+          <div className="stack rise">
+            <h2 className="serif page-title">Your consistency</h2>
+            <section className="card strip">
+              <div><p className="v serif">{analytics.weekly}%</p><p className="l">7-day average</p></div>
+              <div><p className="v serif">{analytics.monthly}%</p><p className="l">30-day average</p></div>
+              <div><p className="v serif">{analytics.overall}%</p><p className="l">all time</p></div>
             </section>
-            <section className="hx-card p-6">
-              <h3 className="text-sm font-semibold mb-5">Last 14 days</h3>
-              <div className="flex items-end gap-1.5 h-40">
+            <section className="card">
+              <h3 className="t" style={{ marginBottom: 20 }}>Last 14 days</h3>
+              <div className="bars">
                 {analytics.last14.map((k) => {
                   const pct = getDayMetrics(k).pct;
                   return (
-                    <div key={k} className="flex-1 flex flex-col items-center justify-end h-full gap-1.5" title={`${formatDisplayDate(k)}: ${pct}%`}>
-                      <div className="w-full rounded-full" style={{ height: `${Math.max(pct, 4)}%`, background: pct ? 'linear-gradient(180deg,#ffc27a,#e86f9a)' : 'rgba(255,236,220,.08)' }} />
-                      <span className="text-[10px] hx-mute">{parseDateKey(k).getDate()}</span>
+                    <div key={k} title={`${formatDisplayDate(k)}: ${pct}%`}>
+                      <i style={{ height: `${Math.max(pct, 4)}%`, background: pct ? 'linear-gradient(180deg,#ffc27a,#e86f9a)' : 'rgba(255,236,220,.08)' }} />
+                      <span>{parseDateKey(k).getDate()}</span>
                     </div>
                   );
                 })}
@@ -595,39 +607,36 @@ export default function App() {
           </div>
         )}
 
-        {/* ================= MANAGE ================= */}
         {activeTab === 'manage' && (
-          <div className="space-y-5 hx-rise">
-            <h2 className="hx-serif text-3xl">Your habits</h2>
-            <form onSubmit={handleAddHabit} className="hx-card p-5 space-y-3">
-              <h3 className="text-sm font-semibold hx-sun">Add a habit</h3>
-              <input className="hx-input" required placeholder="e.g. Read 10 pages" aria-label="Habit name" value={newHabitName} onChange={(e) => setNewHabitName(e.target.value)} />
-              <div className="grid grid-cols-2 gap-3">
-                <select className="hx-input" aria-label="Category" value={newHabitCategory} onChange={(e) => setNewHabitCategory(e.target.value)}>
+          <div className="stack rise">
+            <h2 className="serif page-title">Your habits</h2>
+            <form onSubmit={handleAddHabit} className="card form">
+              <h3 className="t">Add a habit</h3>
+              <input className="input" required placeholder="e.g. Read 10 pages" aria-label="Habit name" value={newHabitName} onChange={(e) => setNewHabitName(e.target.value)} />
+              <div className="two">
+                <select className="input" aria-label="Category" value={newHabitCategory} onChange={(e) => setNewHabitCategory(e.target.value)}>
                   {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
-                <select className="hx-input" aria-label="Type" value={newHabitType} onChange={(e) => setNewHabitType(e.target.value)}>
+                <select className="input" aria-label="Type" value={newHabitType} onChange={(e) => setNewHabitType(e.target.value)}>
                   <option value="boolean">Done / missed</option>
                   <option value="numeric">Count</option>
                 </select>
               </div>
-              {newHabitType === 'numeric' && (
-                <input className="hx-input" type="number" min="1" aria-label="Daily target" placeholder="Daily target" value={newHabitTarget} onChange={(e) => setNewHabitTarget(e.target.value)} />
-              )}
-              <button type="submit" className="hx-btn flex items-center gap-2"><Plus className="w-4 h-4" />Add habit</button>
+              {newHabitType === 'numeric' && (<input className="input" type="number" min="1" aria-label="Daily target" placeholder="Daily target" value={newHabitTarget} onChange={(e) => setNewHabitTarget(e.target.value)} />)}
+              <button type="submit" className="btn"><Plus size={16} />Add habit</button>
             </form>
 
-            <section className="hx-card p-5">
-              <ul className="divide-y hx-divide">
+            <section className="card" style={{ padding: '14px 18px' }}>
+              <ul>
                 {activeHabits.map((h) => (
-                  <li key={h.id} className="flex items-center justify-between gap-3 py-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{h.name}</p>
-                      <p className="text-xs hx-mute">{h.category}{h.type === 'numeric' ? ` · target ${h.target}` : ''}</p>
+                  <li key={h.id} className="item">
+                    <div className="grow">
+                      <p style={{ fontWeight: 600, fontSize: 14.5 }}>{h.name}</p>
+                      <p className="mute xs">{h.category}{h.type === 'numeric' ? ` · target ${h.target}` : ''}</p>
                     </div>
-                    <div className="flex gap-1.5 shrink-0">
-                      <button className="hx-ghost hx-icon" aria-label={`Archive ${h.name}`} onClick={() => archiveHabit(h)}><Archive className="w-4 h-4" /></button>
-                      <button className="hx-ghost hx-icon hx-pink" aria-label={`Delete ${h.name}`} onClick={() => deleteHabit(h)}><Trash2 className="w-4 h-4" /></button>
+                    <div className="row g8">
+                      <button className="ghost icon" aria-label={`Archive ${h.name}`} onClick={() => archiveHabit(h)}><Archive size={16} /></button>
+                      <button className="ghost icon danger" aria-label={`Delete ${h.name}`} onClick={() => deleteHabit(h)}><Trash2 size={16} /></button>
                     </div>
                   </li>
                 ))}
@@ -637,20 +646,12 @@ export default function App() {
         )}
       </div>
 
-      {/* floating nav */}
-      <nav aria-label="Main" className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 flex gap-1 p-1.5 rounded-full border hx-border"
-        style={{ background: 'rgba(23,21,48,.82)', backdropFilter: 'blur(18px)', paddingBottom: 'calc(0.375rem + env(safe-area-inset-bottom, 0px))' }}>
-        {TABS.map(({ id, label, icon: Icon }) => {
-          const active = activeTab === id;
-          return (
-            <button key={id} onClick={() => setActiveTab(id)} aria-current={active ? 'page' : undefined}
-              className={`flex items-center gap-2 rounded-full px-3.5 py-2.5 text-xs font-semibold transition-colors ${active ? 'hx-dark' : 'hx-mute'}`}
-              style={active ? { background: 'linear-gradient(135deg,#ffc27a,#ff8a7a)' } : undefined}>
-              <Icon className="w-4 h-4" />
-              {active && <span>{label}</span>}
-            </button>
-          );
-        })}
+      <nav aria-label="Main" className="nav">
+        {TABS.map(({ id, label, icon: Icon }) => (
+          <button key={id} className={activeTab === id ? 'on' : ''} onClick={() => setActiveTab(id)} aria-current={activeTab === id ? 'page' : undefined}>
+            <Icon size={17} />{activeTab === id && <span>{label}</span>}
+          </button>
+        ))}
       </nav>
     </div>
   );
