@@ -89,17 +89,31 @@ const STYLES = `
   --night:#0f0e1c; --deep:#171530; --veil:#211e45; --line:rgba(255,236,220,.09);
   --ink:#f6eee6; --mute:#a59fbd; --sun:#ffc27a; --coral:#ff8a7a; --rose:#e86f9a; --iris:#8b7cf8;
 }
-.hx{font-family:'Manrope',system-ui,sans-serif;color:var(--ink);background:var(--night);min-height:100vh;
+.hx{font-family:'Manrope',system-ui,sans-serif;color:#f6eee6;background:var(--night);min-height:100vh;
   background-image:radial-gradient(900px 500px at 50% -10%,rgba(139,124,248,.28),transparent 70%),
   radial-gradient(700px 400px at 100% 0%,rgba(255,138,122,.12),transparent 70%)}
+
+.hx-mute{color:#a59fbd}.hx-sun{color:#ffc27a}.hx-coral{color:#ff8a7a}.hx-pink{color:#ff9db9}.hx-dark{color:#2a1420}
+.hx-hover-sun:hover{color:#ffc27a}
+.hx-divide>*+*{border-top:1px solid rgba(255,236,220,.09)}
+.hx-divide-x>*+*{border-left:1px solid rgba(255,236,220,.09)}
+.hx-border{border-color:rgba(255,236,220,.09)}
+.hx-err{background:rgba(232,111,154,.1);border:1px solid rgba(232,111,154,.3)}
+.hx-dark-scheme{color-scheme:dark}
+.hx-icon{padding:.65rem!important}.hx-slim{padding-top:.5rem!important;padding-bottom:.5rem!important}.hx-count{width:6rem!important}
+.hx button,.hx select,.hx textarea,.hx input{font-family:inherit}
+.hx h1,.hx h2,.hx h3,.hx p,.hx blockquote{margin:0}
+:where(.hx) button{color:#f6eee6;background:none;border:0;cursor:pointer}
+:where(.hx) ul{list-style:none;margin:0;padding:0}
+.hx .hx-btn{color:#2a1420}
 .hx-serif{font-family:'Fraunces',Georgia,serif;font-weight:400;letter-spacing:-.01em}
 .hx-card{background:linear-gradient(180deg,rgba(33,30,69,.7),rgba(23,21,48,.7));border:1px solid var(--line);border-radius:28px}
-.hx-input{width:100%;background:rgba(15,14,28,.7);border:1px solid var(--line);border-radius:16px;padding:.8rem 1rem;color:var(--ink);font-size:.9rem;outline:none}
-.hx-input:focus{border-color:var(--sun)}
-.hx-btn{background:linear-gradient(135deg,var(--sun),var(--coral));color:#2a1420;font-weight:700;border-radius:999px;padding:.8rem 1.4rem;font-size:.85rem}
+.hx-input{width:100%;background:rgba(15,14,28,.7);border:1px solid var(--line);border-radius:16px;padding:.8rem 1rem;color:#f6eee6;font-size:.9rem;outline:none}
+.hx-input:focus{border-color:#ffc27a}
+.hx-btn{background:linear-gradient(135deg,#ffc27a,#ff8a7a);color:#2a1420;font-weight:700;border-radius:999px;padding:.8rem 1.4rem;font-size:.85rem}
 .hx-btn:disabled{opacity:.5}
-.hx-ghost{background:rgba(255,236,220,.06);border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:.7rem 1.2rem;font-size:.8rem;font-weight:600}
-.hx button:focus-visible,.hx input:focus-visible,.hx select:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
+.hx-ghost{background:rgba(255,236,220,.06);border:1px solid var(--line);color:#f6eee6;border-radius:999px;padding:.7rem 1.2rem;font-size:.8rem;font-weight:600}
+.hx button:focus-visible,.hx input:focus-visible,.hx select:focus-visible{outline:2px solid #ffc27a;outline-offset:2px}
 @keyframes hx-rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 .hx-rise{animation:hx-rise .7s ease-out both}
 @media (prefers-reduced-motion:reduce){.hx-rise{animation:none}*{transition:none!important}}
@@ -133,14 +147,18 @@ function SunArc({ pct }) {
 }
 
 function StateButton({ status, onClick }) {
-  const base = 'w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-colors border';
-  const cls = status === 'done'
-    ? 'bg-[#ffc27a] border-[#ffc27a] text-[#2a1420]'
+  const look = status === 'done'
+    ? { background: '#ffc27a', borderColor: '#ffc27a', color: '#2a1420' }
     : status === 'missed'
-    ? 'bg-[#e86f9a]/20 border-[#e86f9a]/60 text-[#ff9db9]'
-    : 'bg-transparent border-[rgba(255,236,220,.22)] text-transparent';
+    ? { background: 'rgba(232,111,154,.2)', borderColor: 'rgba(232,111,154,.6)', color: '#ff9db9' }
+    : { background: 'transparent', borderColor: 'rgba(255,236,220,.22)', color: 'transparent' };
   return (
-    <button onClick={onClick} className={`${base} ${cls}`} aria-label={`Status: ${status === 'empty' ? 'pending' : status}. Tap to change.`}>
+    <button
+      onClick={onClick}
+      className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+      style={{ ...look, borderWidth: 1, borderStyle: 'solid', transition: 'all .2s' }}
+      aria-label={`Status: ${status === 'empty' ? 'pending' : status}. Tap to change.`}
+    >
       {status === 'missed' ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
     </button>
   );
@@ -349,7 +367,7 @@ export default function App() {
     return (
       <div className="hx flex items-center justify-center">
         <style>{STYLES}</style>
-        <p className="hx-serif text-xl text-[color:var(--mute)]">Loading your day…</p>
+        <p className="hx-serif text-xl hx-mute">Loading your day…</p>
       </div>
     );
   }
@@ -360,10 +378,10 @@ export default function App() {
         <style>{STYLES}</style>
         <div className="hx-card w-full max-w-md p-8 hx-rise">
           <h1 className="hx-serif text-4xl leading-tight">Rise early.<br />Stay steady.</h1>
-          <p className="text-sm text-[color:var(--mute)] mt-3">HabitX tracks your prayers, discipline, health and creative work in one daily checklist.</p>
+          <p className="text-sm hx-mute mt-3">HabitX tracks your prayers, discipline, health and creative work in one daily checklist.</p>
 
           {authError && (
-            <div className="mt-5 p-3 rounded-2xl bg-[#e86f9a]/10 border border-[#e86f9a]/30 text-[#ff9db9] text-xs flex gap-2">
+            <div className="mt-5 p-3 rounded-2xl hx-err hx-pink text-xs flex gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" /><span>{authError}</span>
             </div>
           )}
@@ -381,7 +399,7 @@ export default function App() {
 
           <button onClick={handleGuest} disabled={authSubmitting} className="hx-ghost w-full mt-3">Continue as guest</button>
           <button onClick={() => { setAuthMode(authMode === 'login' ? 'signup' : 'login'); setAuthError(''); }}
-            className="block mx-auto mt-5 text-xs text-[color:var(--mute)] hover:text-[color:var(--sun)]">
+            className="block mx-auto mt-5 text-xs hx-mute hover:hx-sun">
             {authMode === 'login' ? 'New here? Create an account' : 'Have an account? Sign in'}
           </button>
         </div>
@@ -409,7 +427,7 @@ export default function App() {
       <div className="max-w-3xl mx-auto px-5 pt-8">
         {/* top bar */}
         <header className="flex items-center justify-between mb-8">
-          <p className="text-xs text-[color:var(--mute)] flex items-center gap-2">
+          <p className="text-xs hx-mute flex items-center gap-2">
             <Cloud className="w-3.5 h-3.5" />
             {syncStatus === 'synced' ? 'Saved' : syncStatus === 'syncing' ? 'Saving…' : 'Not saved. Check your connection.'}
           </p>
@@ -420,37 +438,37 @@ export default function App() {
         {activeTab === 'today' && (
           <div className="space-y-5 hx-rise">
             <section className="hx-card px-6 pt-8 pb-7 text-center">
-              <p className="text-sm text-[color:var(--mute)]">{greeting()}{firstName ? `, ${firstName}` : ''}</p>
+              <p className="text-sm hx-mute">{greeting()}{firstName ? `, ${firstName}` : ''}</p>
               <SunArc pct={today.pct} />
               <div className="-mt-10 relative">
-                <p className="hx-serif text-6xl">{today.pct}<span className="text-2xl text-[color:var(--mute)]">%</span></p>
-                <p className="text-sm text-[color:var(--mute)] mt-1">{today.completed} of {today.total} done · {formatDisplayDate(todayKey)}</p>
+                <p className="hx-serif text-6xl">{today.pct}<span className="text-2xl hx-mute">%</span></p>
+                <p className="text-sm hx-mute mt-1">{today.completed} of {today.total} done · {formatDisplayDate(todayKey)}</p>
               </div>
               <button onClick={() => { setSelectedDate(todayKey); setActiveTab('tracker'); }} className="hx-btn mt-6">Open today’s checklist</button>
             </section>
 
-            <section className="hx-card grid grid-cols-3 divide-x divide-[color:var(--line)] py-5 text-center">
-              <div><p className="hx-serif text-3xl flex items-center justify-center gap-1.5"><Flame className="w-5 h-5 text-[color:var(--coral)]" />{analytics.current}</p><p className="text-xs text-[color:var(--mute)] mt-1">day streak</p></div>
-              <div><p className="hx-serif text-3xl">{analytics.weekly}%</p><p className="text-xs text-[color:var(--mute)] mt-1">last 7 days</p></div>
-              <div><p className="hx-serif text-3xl">{analytics.best}</p><p className="text-xs text-[color:var(--mute)] mt-1">best streak</p></div>
+            <section className="hx-card grid grid-cols-3 hx-divide-x py-5 text-center">
+              <div><p className="hx-serif text-3xl flex items-center justify-center gap-1.5"><Flame className="w-5 h-5 hx-coral" />{analytics.current}</p><p className="text-xs hx-mute mt-1">day streak</p></div>
+              <div><p className="hx-serif text-3xl">{analytics.weekly}%</p><p className="text-xs hx-mute mt-1">last 7 days</p></div>
+              <div><p className="hx-serif text-3xl">{analytics.best}</p><p className="text-xs hx-mute mt-1">best streak</p></div>
             </section>
 
             <section className="hx-card p-6">
               <div className="flex items-end justify-between">
                 <div>
                   <h2 className="text-sm font-semibold">Durood Shareef</h2>
-                  <p className="text-xs text-[color:var(--mute)] mt-0.5">Target {today.duroodTarget} today</p>
+                  <p className="text-xs hx-mute mt-0.5">Target {today.duroodTarget} today</p>
                 </div>
                 <p className="hx-serif text-4xl">{today.duroodCount}</p>
               </div>
               <div className="h-2 rounded-full bg-white/10 mt-4 overflow-hidden">
-                <div className="h-full rounded-full" style={{ width: `${today.duroodPct}%`, background: 'linear-gradient(90deg,var(--iris),var(--rose),var(--sun))', transition: 'width .6s ease' }} />
+                <div className="h-full rounded-full" style={{ width: `${today.duroodPct}%`, background: 'linear-gradient(90deg,#8b7cf8,#e86f9a,#ffc27a)', transition: 'width .6s ease' }} />
               </div>
             </section>
 
             <blockquote className="px-3 pt-3">
               <p className="hx-serif text-xl leading-snug">“{quote.text}”</p>
-              <footer className="text-xs text-[color:var(--sun)] mt-3">{quote.author}</footer>
+              <footer className="text-xs hx-sun mt-3">{quote.author}</footer>
             </blockquote>
           </div>
         )}
@@ -461,21 +479,21 @@ export default function App() {
             <div className="flex items-center justify-between">
               <h2 className="hx-serif text-3xl">{selectedDate === todayKey ? 'Today' : formatDisplayDate(selectedDate)}</h2>
               <div className="flex items-center gap-1.5">
-                <button className="hx-ghost !p-2.5" aria-label="Previous day" onClick={() => setSelectedDate(addDays(selectedDate, -1))}><ChevronLeft className="w-4 h-4" /></button>
+                <button className="hx-ghost hx-icon" aria-label="Previous day" onClick={() => setSelectedDate(addDays(selectedDate, -1))}><ChevronLeft className="w-4 h-4" /></button>
                 <input type="date" aria-label="Pick a date" value={selectedDate} onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
-                  className="bg-transparent text-xs font-semibold px-1 w-[7.5rem] cursor-pointer [color-scheme:dark]" />
-                <button className="hx-ghost !p-2.5" aria-label="Next day" onClick={() => setSelectedDate(addDays(selectedDate, 1))}><ChevronRight className="w-4 h-4" /></button>
+                  className="bg-transparent text-xs font-semibold px-1 w-[7.5rem] cursor-pointer hx-dark-scheme" />
+                <button className="hx-ghost hx-icon" aria-label="Next day" onClick={() => setSelectedDate(addDays(selectedDate, 1))}><ChevronRight className="w-4 h-4" /></button>
               </div>
             </div>
-            <p className="text-xs text-[color:var(--mute)] -mt-2">Tap the circle to cycle: pending, done, missed.</p>
+            <p className="text-xs hx-mute -mt-2">Tap the circle to cycle: pending, done, missed.</p>
 
             {CATEGORIES.map((cat) => {
               const list = activeHabits.filter((h) => h.category === cat);
               if (!list.length) return null;
               return (
                 <section key={cat} className="hx-card p-5">
-                  <h3 className="text-sm font-semibold mb-3 text-[color:var(--sun)]">{cat}</h3>
-                  <ul className="divide-y divide-[color:var(--line)]">
+                  <h3 className="text-sm font-semibold mb-3 hx-sun">{cat}</h3>
+                  <ul className="divide-y hx-divide">
                     {list.map((h) => {
                       const val = dailyRecords[selectedDate]?.statuses?.[h.id];
                       if (h.type === 'numeric') {
@@ -483,11 +501,11 @@ export default function App() {
                           <li key={h.id} className="flex items-center justify-between gap-3 py-3">
                             <div>
                               <p className="text-sm font-medium">{h.name}</p>
-                              <p className="text-xs text-[color:var(--mute)]">Target {h.target || 100} per day</p>
+                              <p className="text-xs hx-mute">Target {h.target || 100} per day</p>
                             </div>
                             <input type="number" min="0" inputMode="numeric" value={val || ''} placeholder="0" aria-label={`${h.name} count`}
                               onChange={(e) => updateHabitStatus(selectedDate, h.id, Number(e.target.value) || 0)}
-                              className="hx-input !w-24 text-center font-bold" />
+                              className="hx-input hx-count text-center font-bold" />
                           </li>
                         );
                       }
@@ -495,8 +513,8 @@ export default function App() {
                       return (
                         <li key={h.id} className="flex items-center gap-4 py-3 cursor-pointer" onClick={() => cycleHabit(selectedDate, h.id)}>
                           <StateButton status={status} onClick={(e) => { e.stopPropagation(); cycleHabit(selectedDate, h.id); }} />
-                          <p className={`text-sm font-medium flex-1 ${status === 'done' ? 'text-[color:var(--mute)] line-through decoration-[color:var(--sun)]/60' : ''}`}>{h.name}</p>
-                          {status === 'missed' && <span className="text-xs text-[#ff9db9]">Missed</span>}
+                          <p className={`text-sm font-medium flex-1 ${status === 'done' ? 'hx-mute line-through ' : ''}`}>{h.name}</p>
+                          {status === 'missed' && <span className="text-xs hx-pink">Missed</span>}
                         </li>
                       );
                     })}
@@ -506,7 +524,7 @@ export default function App() {
             })}
 
             <section className="hx-card p-5">
-              <h3 className="text-sm font-semibold mb-3 text-[color:var(--sun)]">Journal</h3>
+              <h3 className="text-sm font-semibold mb-3 hx-sun">Journal</h3>
               <textarea value={noteDraft} onChange={(e) => handleNoteChange(e.target.value)} rows={4}
                 placeholder="What went well today? What will you do differently tomorrow?" className="hx-input resize-none" />
             </section>
@@ -519,12 +537,12 @@ export default function App() {
             <div className="flex items-center justify-between">
               <h2 className="hx-serif text-3xl">{monthLabel}</h2>
               <div className="flex gap-1.5">
-                <button className="hx-ghost !p-2.5" aria-label="Previous month" onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1))}><ChevronLeft className="w-4 h-4" /></button>
-                <button className="hx-ghost !p-2.5" aria-label="Next month" onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1))}><ChevronRight className="w-4 h-4" /></button>
+                <button className="hx-ghost hx-icon" aria-label="Previous month" onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1))}><ChevronLeft className="w-4 h-4" /></button>
+                <button className="hx-ghost hx-icon" aria-label="Next month" onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1))}><ChevronRight className="w-4 h-4" /></button>
               </div>
             </div>
             <section className="hx-card p-4 sm:p-6">
-              <div className="grid grid-cols-7 gap-1.5 sm:gap-2 text-center text-[11px] text-[color:var(--mute)] mb-2">
+              <div className="grid grid-cols-7 gap-1.5 sm:gap-2 text-center text-[11px] hx-mute mb-2">
                 {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => <span key={i}>{d}</span>)}
               </div>
               <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
@@ -538,15 +556,15 @@ export default function App() {
                       className="aspect-square rounded-2xl text-xs font-semibold flex items-center justify-center"
                       style={{
                         background: logged ? `rgba(255,194,122,${0.1 + (pct / 100) * 0.75})` : 'rgba(255,236,220,.04)',
-                        color: logged && pct > 55 ? '#2a1420' : 'var(--ink)',
-                        outline: isToday ? '2px solid var(--iris)' : 'none',
+                        color: logged && pct > 55 ? '#2a1420' : '#f6eee6',
+                        outline: isToday ? '2px solid #8b7cf8' : 'none',
                       }}>
                       {parseDateKey(k).getDate()}
                     </button>
                   );
                 })}
               </div>
-              <p className="text-xs text-[color:var(--mute)] mt-4">Brighter days mean more habits done. Tap a day to edit it.</p>
+              <p className="text-xs hx-mute mt-4">Brighter days mean more habits done. Tap a day to edit it.</p>
             </section>
           </div>
         )}
@@ -555,10 +573,10 @@ export default function App() {
         {activeTab === 'stats' && (
           <div className="space-y-5 hx-rise">
             <h2 className="hx-serif text-3xl">Your consistency</h2>
-            <section className="hx-card grid grid-cols-3 divide-x divide-[color:var(--line)] py-5 text-center">
-              <div><p className="hx-serif text-3xl">{analytics.weekly}%</p><p className="text-xs text-[color:var(--mute)] mt-1">7-day average</p></div>
-              <div><p className="hx-serif text-3xl">{analytics.monthly}%</p><p className="text-xs text-[color:var(--mute)] mt-1">30-day average</p></div>
-              <div><p className="hx-serif text-3xl">{analytics.overall}%</p><p className="text-xs text-[color:var(--mute)] mt-1">all time</p></div>
+            <section className="hx-card grid grid-cols-3 hx-divide-x py-5 text-center">
+              <div><p className="hx-serif text-3xl">{analytics.weekly}%</p><p className="text-xs hx-mute mt-1">7-day average</p></div>
+              <div><p className="hx-serif text-3xl">{analytics.monthly}%</p><p className="text-xs hx-mute mt-1">30-day average</p></div>
+              <div><p className="hx-serif text-3xl">{analytics.overall}%</p><p className="text-xs hx-mute mt-1">all time</p></div>
             </section>
             <section className="hx-card p-6">
               <h3 className="text-sm font-semibold mb-5">Last 14 days</h3>
@@ -567,8 +585,8 @@ export default function App() {
                   const pct = getDayMetrics(k).pct;
                   return (
                     <div key={k} className="flex-1 flex flex-col items-center justify-end h-full gap-1.5" title={`${formatDisplayDate(k)}: ${pct}%`}>
-                      <div className="w-full rounded-full" style={{ height: `${Math.max(pct, 4)}%`, background: pct ? 'linear-gradient(180deg,var(--sun),var(--rose))' : 'rgba(255,236,220,.08)' }} />
-                      <span className="text-[10px] text-[color:var(--mute)]">{parseDateKey(k).getDate()}</span>
+                      <div className="w-full rounded-full" style={{ height: `${Math.max(pct, 4)}%`, background: pct ? 'linear-gradient(180deg,#ffc27a,#e86f9a)' : 'rgba(255,236,220,.08)' }} />
+                      <span className="text-[10px] hx-mute">{parseDateKey(k).getDate()}</span>
                     </div>
                   );
                 })}
@@ -582,7 +600,7 @@ export default function App() {
           <div className="space-y-5 hx-rise">
             <h2 className="hx-serif text-3xl">Your habits</h2>
             <form onSubmit={handleAddHabit} className="hx-card p-5 space-y-3">
-              <h3 className="text-sm font-semibold text-[color:var(--sun)]">Add a habit</h3>
+              <h3 className="text-sm font-semibold hx-sun">Add a habit</h3>
               <input className="hx-input" required placeholder="e.g. Read 10 pages" aria-label="Habit name" value={newHabitName} onChange={(e) => setNewHabitName(e.target.value)} />
               <div className="grid grid-cols-2 gap-3">
                 <select className="hx-input" aria-label="Category" value={newHabitCategory} onChange={(e) => setNewHabitCategory(e.target.value)}>
@@ -600,16 +618,16 @@ export default function App() {
             </form>
 
             <section className="hx-card p-5">
-              <ul className="divide-y divide-[color:var(--line)]">
+              <ul className="divide-y hx-divide">
                 {activeHabits.map((h) => (
                   <li key={h.id} className="flex items-center justify-between gap-3 py-3">
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">{h.name}</p>
-                      <p className="text-xs text-[color:var(--mute)]">{h.category}{h.type === 'numeric' ? ` · target ${h.target}` : ''}</p>
+                      <p className="text-xs hx-mute">{h.category}{h.type === 'numeric' ? ` · target ${h.target}` : ''}</p>
                     </div>
                     <div className="flex gap-1.5 shrink-0">
-                      <button className="hx-ghost !p-2.5" aria-label={`Archive ${h.name}`} onClick={() => archiveHabit(h)}><Archive className="w-4 h-4" /></button>
-                      <button className="hx-ghost !p-2.5 !text-[#ff9db9]" aria-label={`Delete ${h.name}`} onClick={() => deleteHabit(h)}><Trash2 className="w-4 h-4" /></button>
+                      <button className="hx-ghost hx-icon" aria-label={`Archive ${h.name}`} onClick={() => archiveHabit(h)}><Archive className="w-4 h-4" /></button>
+                      <button className="hx-ghost hx-icon hx-pink" aria-label={`Delete ${h.name}`} onClick={() => deleteHabit(h)}><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </li>
                 ))}
@@ -620,14 +638,14 @@ export default function App() {
       </div>
 
       {/* floating nav */}
-      <nav aria-label="Main" className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 flex gap-1 p-1.5 rounded-full border border-[color:var(--line)]"
+      <nav aria-label="Main" className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 flex gap-1 p-1.5 rounded-full border hx-border"
         style={{ background: 'rgba(23,21,48,.82)', backdropFilter: 'blur(18px)', paddingBottom: 'calc(0.375rem + env(safe-area-inset-bottom, 0px))' }}>
         {TABS.map(({ id, label, icon: Icon }) => {
           const active = activeTab === id;
           return (
             <button key={id} onClick={() => setActiveTab(id)} aria-current={active ? 'page' : undefined}
-              className={`flex items-center gap-2 rounded-full px-3.5 py-2.5 text-xs font-semibold transition-colors ${active ? 'text-[#2a1420]' : 'text-[color:var(--mute)]'}`}
-              style={active ? { background: 'linear-gradient(135deg,var(--sun),var(--coral))' } : undefined}>
+              className={`flex items-center gap-2 rounded-full px-3.5 py-2.5 text-xs font-semibold transition-colors ${active ? 'hx-dark' : 'hx-mute'}`}
+              style={active ? { background: 'linear-gradient(135deg,#ffc27a,#ff8a7a)' } : undefined}>
               <Icon className="w-4 h-4" />
               {active && <span>{label}</span>}
             </button>
