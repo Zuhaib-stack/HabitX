@@ -41,7 +41,7 @@ const DEFAULT_HABITS = [
   { id: 'def-8', name: 'Running', type: 'boolean', category: 'Physical Health', order: 8, archived: false },
   { id: 'def-9', name: 'Healthy Breakfast', type: 'boolean', category: 'Physical Health', order: 9, archived: false },
   { id: 'def-10', name: 'One Video (Content Creation)', type: 'boolean', category: 'Content Creation', order: 10, archived: false },
-  { id: 'def-11', name: 'Sleep After 11 PM', type: 'boolean', category: 'Discipline', order: 11, archived: false },
+  { id: 'def-11', name: 'Sleep Before 11 PM', type: 'boolean', category: 'Discipline', order: 11, archived: false },
 ];
 
 const QUOTES = [
