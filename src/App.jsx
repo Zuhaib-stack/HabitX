@@ -108,7 +108,7 @@ html,body,#root{margin:0;min-height:100%;background:#04211c}
   background-attachment:fixed}
 .hx h1,.hx h2,.hx h3,.hx p,.hx blockquote,.hx ul{margin:0;padding:0}
 .hx ul{list-style:none}
-.hx button{font-family:inherit;color:#f7ecd0;background:none;border:0;cursor:pointer;padding:3}
+.hx button{font-family:inherit;color:#f7ecd0;background:none;border:0;cursor:pointer;padding:4}
 .hx input,.hx select,.hx textarea{font-family:inherit}
 .serif{font-family:'Amiri','Times New Roman',serif;font-weight:400;letter-spacing:0}
 .mute{color:#9db8ac}.sun{color:#ffd86b}.coral{color:#ff9a4d}.pink{color:#f09a80}
