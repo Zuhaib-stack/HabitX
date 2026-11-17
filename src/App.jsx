@@ -77,7 +77,7 @@ const getQuoteForDate = (k) =>
   QUOTES[k.split('-').reduce((a, v) => a + parseInt(v, 10), 0) % QUOTES.length];
 const greeting = () => {
   const h = new Date().getHours();
-  return h < 5 ? 'Before the dawn' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  return h < 5 ? 'اَلسَّلَامُ عَلَيْكُمْ' : h < 12 ? 'اَلسَّلَامُ عَلَيْكُمْ' : h < 17 ? 'اَلسَّلَامُ عَلَيْكُمْ' : 'اَلسَّلَامُ عَلَيْكُمْ';
 };
 
 // Eight-pointed star (Khatam): two overlapping squares, used as clip shape, marker and ornament
