@@ -41,7 +41,7 @@ const DEFAULT_HABITS = [
   { id: 'def-8', name: 'Running', type: 'boolean', category: 'Physical Health', order: 8, archived: false },
   { id: 'def-9', name: 'Healthy Breakfast', type: 'boolean', category: 'Physical Health', order: 9, archived: false },
   { id: 'def-10', name: 'One Video (Content Creation)', type: 'boolean', category: 'Content Creation', order: 10, archived: false },
-  { id: 'def-11', name: 'Sleep Before 11 PM', type: 'boolean', category: 'Discipline', order: 11, archived: false },
+  { id: 'def-11', name: 'Sleep After 11 PM', type: 'boolean', category: 'Discipline', order: 11, archived: false },
 ];
 
 const QUOTES = [
@@ -80,125 +80,158 @@ const greeting = () => {
   return h < 5 ? 'Before the dawn' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
 };
 
+// Eight-pointed star (Khatam): two overlapping squares, used as clip shape, marker and ornament
+const OCTAGRAM = [[50, 0], [64.64, 14.64], [85.36, 14.64], [85.36, 35.36], [100, 50], [85.36, 64.64], [85.36, 85.36], [64.64, 85.36],
+  [50, 100], [35.36, 85.36], [14.64, 85.36], [14.64, 64.64], [0, 50], [14.64, 35.36], [14.64, 14.64], [35.36, 14.64]];
+const STAR_CLIP = `polygon(${OCTAGRAM.map(([a, b]) => `${a}% ${b}%`).join(',')})`;
+const starPoints = (scale) => OCTAGRAM.map(([a, b]) => `${((a - 50) * scale).toFixed(2)},${((b - 50) * scale).toFixed(2)}`).join(' ');
+
 // ============================================================================
 // STYLES: plain CSS only (no Tailwind needed)
-// Palette: ink #130e07 · honey #ffd24a · amber #ffb703 · ember #ff8f1f · butter #fff1b8
+// Palette: emerald ink #04211c · mosque green #0a3a31 · gold #e9b949 · bright gold #ffd86b · parchment #f7ecd0
 // ============================================================================
 const STYLES = `
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Manrope:wght@400;500;600;700;800&display=swap');
-html,body,#root{margin:0;min-height:100%;background:#130e07}
+@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Manrope:wght@400;500;600;700;800&display=swap');
+html,body,#root{margin:0;min-height:100%;background:#04211c}
 .hx,.hx *{box-sizing:border-box}
-.hx{font-family:'Manrope',system-ui,sans-serif;color:#fbf3e2;min-height:100vh;font-size:15px;line-height:1.45;
-  background-color:#130e07;
+.hx{
+  --star:${STAR_CLIP};
+  --tile:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Cg fill='none' stroke='%23e9b949' stroke-opacity='.14' stroke-width='1'%3E%3Crect x='16' y='16' width='40' height='40'/%3E%3Crect x='16' y='16' width='40' height='40' transform='rotate(45 36 36)'/%3E%3Ccircle cx='36' cy='36' r='7'/%3E%3Cpath d='M0 0L16 16M72 0L56 16M0 72L16 56M72 72L56 56'/%3E%3C/g%3E%3C/svg%3E");
+  --tile-dark:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Cg fill='none' stroke='%230b2e27' stroke-opacity='.2' stroke-width='1'%3E%3Crect x='16' y='16' width='40' height='40'/%3E%3Crect x='16' y='16' width='40' height='40' transform='rotate(45 36 36)'/%3E%3Ccircle cx='36' cy='36' r='7'/%3E%3Cpath d='M0 0L16 16M72 0L56 16M0 72L16 56M72 72L56 56'/%3E%3C/g%3E%3C/svg%3E");
+  font-family:'Manrope',system-ui,sans-serif;color:#f7ecd0;min-height:100vh;font-size:15px;line-height:1.45;
+  background-color:#04211c;
   background-image:
-    radial-gradient(900px 520px at 50% -12%,rgba(255,200,40,.34),transparent 70%),
-    radial-gradient(700px 420px at 105% 8%,rgba(255,124,30,.20),transparent 70%),
-    radial-gradient(600px 400px at -10% 55%,rgba(255,214,90,.10),transparent 70%);
+    radial-gradient(900px 520px at 50% -12%,rgba(255,206,70,.26),transparent 70%),
+    radial-gradient(700px 480px at 105% 10%,rgba(28,122,104,.35),transparent 70%),
+    radial-gradient(600px 420px at -10% 60%,rgba(255,200,60,.08),transparent 70%),
+    var(--tile);
   background-attachment:fixed}
 .hx h1,.hx h2,.hx h3,.hx p,.hx blockquote,.hx ul{margin:0;padding:0}
 .hx ul{list-style:none}
-.hx button{font-family:inherit;color:#fbf3e2;background:none;border:0;cursor:pointer;padding:0}
+.hx button{font-family:inherit;color:#f7ecd0;background:none;border:0;cursor:pointer;padding:0}
 .hx input,.hx select,.hx textarea{font-family:inherit}
-.serif{font-family:'Fraunces',Georgia,serif;font-weight:400;letter-spacing:-.01em}
-.mute{color:#b9ab8d}.sun{color:#ffd24a}.coral{color:#ff9a4d}.pink{color:#ff9a86}
+.serif{font-family:'Amiri','Times New Roman',serif;font-weight:400;letter-spacing:0}
+.mute{color:#9db8ac}.sun{color:#ffd86b}.coral{color:#ff9a4d}.pink{color:#f09a80}
 .xs{font-size:12px}.sm{font-size:13.5px}
 .row{display:flex;align-items:center}.between{justify-content:space-between}.end{align-items:flex-end}
 .g8{gap:8px}.g12{gap:12px}.g16{gap:16px}
 .center{text-align:center}.grow{flex:1;min-width:0}
-.stack>*+*{margin-top:18px}.form>*+*{margin-top:12px}
+.stack>*+*{margin-top:20px}.form>*+*{margin-top:12px}
 
 .wrap{max-width:720px;margin:0 auto;padding:28px 20px 140px}
-.top{margin-bottom:28px}
-.card{background:linear-gradient(180deg,rgba(62,44,12,.78),rgba(30,21,8,.82));border:1px solid rgba(255,210,90,.14);border-radius:28px;padding:24px;box-shadow:0 20px 50px -25px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,236,170,.08)}
-.card h3.t{font-size:14px;font-weight:700;color:#ffd24a;margin-bottom:6px}
-.page-title{font-size:34px;line-height:1.1;background:linear-gradient(135deg,#fff1b8,#ffc72c 60%,#ff9f1c);-webkit-background-clip:text;background-clip:text;color:transparent}
+.top{margin-bottom:24px}
+.card{background:linear-gradient(180deg,rgba(11,62,52,.88),rgba(6,38,32,.92));border:1px solid rgba(233,185,73,.28);border-radius:22px;padding:24px;box-shadow:0 20px 50px -25px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,226,140,.10)}
+.card h3.t{font-size:14px;font-weight:700;color:#ffd86b;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.card h3.t::before{content:"";width:11px;height:11px;flex-shrink:0;background:linear-gradient(135deg,#ffe58a,#e9b949);clip-path:var(--star)}
+.page-title{font-size:40px;line-height:1.1;background:linear-gradient(135deg,#fff0b0,#ffd04a 55%,#e9a62a);-webkit-background-clip:text;background-clip:text;color:transparent}
 
-/* Hero: the one bright, memorable surface */
-.hero{text-align:center;padding:30px 24px 28px;color:#2a1a05;border:0;
-  background:linear-gradient(150deg,#ffeb8a 0%,#ffcd2e 48%,#ff9f1c 100%);
-  box-shadow:0 30px 70px -28px rgba(255,170,20,.65),inset 0 1px 0 rgba(255,255,255,.55)}
-.hero .mute{color:rgba(42,26,5,.72)}
-.hero .num{font-size:64px;line-height:1;margin-top:-58px;position:relative;color:#2a1a05}
-.hero .num small{font-size:24px;color:rgba(42,26,5,.65)}
-.hero .btn{margin-top:24px;background:#2a1a05!important;color:#ffd84d!important;box-shadow:0 12px 26px -10px rgba(42,26,5,.7)}
-.hero .btn:hover{box-shadow:0 16px 30px -10px rgba(42,26,5,.85)}
+/* Ornamental divider: line · star · line */
+.orn{display:flex;align-items:center;gap:10px;margin-top:8px;max-width:260px}
+.orn i{flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(233,185,73,.7))}
+.orn i:last-child{background:linear-gradient(270deg,transparent,rgba(233,185,73,.7))}
+.orn b{width:12px;height:12px;flex-shrink:0;background:linear-gradient(135deg,#ffe58a,#e9b949);clip-path:var(--star)}
+
+.bismillah{font-family:'Amiri',serif;font-size:30px;line-height:1.5;text-align:center;background:linear-gradient(135deg,#fff0b0,#ffd04a 55%,#e9a62a);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* Hero: a mihrab arch with a double gold frame and a lattice behind the text */
+.hero{position:relative;text-align:center;padding:68px 24px 30px;color:#0b2e27;border:0;border-radius:200px 200px 22px 22px;margin-bottom:8px;
+  background:linear-gradient(160deg,#fff0a0 0%,#ffd04a 45%,#e9a62a 100%);
+  box-shadow:0 0 0 3px #04211c,0 0 0 5px #e9b949,0 0 0 9px #04211c,0 0 0 10px rgba(233,185,73,.55),0 34px 70px -26px rgba(255,190,40,.55),inset 0 1px 0 rgba(255,255,255,.55)}
+.hero::before{content:"";position:absolute;inset:0;border-radius:inherit;background-image:var(--tile-dark);opacity:.85;pointer-events:none}
+.hero>*{position:relative}
+.hero .mute{color:rgba(11,46,39,.75)}
+.hero .num{font-size:70px;line-height:1;margin-top:-62px;color:#0b2e27}
+.hero .num small{font-size:26px;color:rgba(11,46,39,.65)}
+.hero .btn{margin-top:24px;background:#0b2e27!important;color:#ffd86b!important;box-shadow:0 12px 26px -10px rgba(4,33,28,.8)}
+.hero .btn:hover{box-shadow:0 16px 30px -10px rgba(4,33,28,.9)}
 .arc{display:block;width:100%;max-width:380px;margin:10px auto 0}
 
 .strip{display:grid;grid-template-columns:repeat(3,1fr);padding:22px 8px;text-align:center}
-.strip>div+div{border-left:1px solid rgba(255,210,90,.14)}
-.strip .v{font-size:30px;display:flex;align-items:center;justify-content:center;gap:6px;background:linear-gradient(135deg,#fff1b8,#ffc72c);-webkit-background-clip:text;background-clip:text;color:transparent}
+.strip>div+div{border-left:1px solid rgba(233,185,73,.22)}
+.strip .v{font-size:32px;display:flex;align-items:center;justify-content:center;gap:6px;background:linear-gradient(135deg,#fff0b0,#ffd04a);-webkit-background-clip:text;background-clip:text;color:transparent}
 .strip .v svg{color:#ff9a4d}
-.strip .l{font-size:12px;color:#b9ab8d;margin-top:4px}
-.bar{height:10px;border-radius:999px;background:rgba(255,236,170,.10);overflow:hidden;margin-top:16px}
-.bar>div{height:100%;border-radius:999px;background:linear-gradient(90deg,#ffe27a,#ffb703,#ff8f1f);transition:width .6s ease;box-shadow:0 0 14px rgba(255,183,3,.55)}
-.quote{padding:10px 6px}.quote p{font-size:21px;line-height:1.35}.quote footer{font-size:12px;color:#ffd24a;margin-top:12px}
+.strip .l{font-size:12px;color:#9db8ac;margin-top:4px}
+.bar{height:10px;border-radius:999px;background:rgba(233,185,73,.12);overflow:hidden;margin-top:16px}
+.bar>div{height:100%;border-radius:999px;background:linear-gradient(90deg,#ffe58a,#ffc533,#e9a62a);transition:width .6s ease;box-shadow:0 0 14px rgba(255,197,51,.5)}
+.quote{padding:10px 6px}.quote p{font-size:24px;line-height:1.4;font-style:italic}.quote footer{font-size:12px;color:#ffd86b;margin-top:12px}
 
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#ffe27a,#ffb703 55%,#ff9a1f)!important;color:#2a1a05!important;font-weight:800;font-size:14px;border-radius:999px;padding:14px 26px;box-shadow:0 10px 28px -8px rgba(255,170,20,.6);transition:transform .15s,box-shadow .15s}
-.btn:hover{transform:translateY(-2px);box-shadow:0 14px 32px -8px rgba(255,170,20,.8)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#ffe58a,#ffc533 55%,#e9a62a)!important;color:#0b2e27!important;font-weight:800;font-size:14px;border-radius:999px;padding:14px 26px;box-shadow:0 10px 28px -8px rgba(255,190,40,.55);transition:transform .15s,box-shadow .15s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 14px 32px -8px rgba(255,190,40,.75)}
 .btn:active{transform:translateY(0)}.btn:disabled{opacity:.5;transform:none}
 .btn.full{width:100%}
-.ghost{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:rgba(255,226,130,.07)!important;border:1px solid rgba(255,210,90,.16)!important;border-radius:999px;padding:10px 16px;font-size:13px;font-weight:600;transition:background .15s,border-color .15s}
-.ghost:hover{background:rgba(255,226,130,.14)!important;border-color:rgba(255,210,74,.5)!important}
+.ghost{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:rgba(233,185,73,.08)!important;border:1px solid rgba(233,185,73,.25)!important;border-radius:999px;padding:10px 16px;font-size:13px;font-weight:600;transition:background .15s,border-color .15s}
+.ghost:hover{background:rgba(233,185,73,.16)!important;border-color:rgba(255,216,107,.6)!important}
 .ghost.full{width:100%;padding:13px}
 .ghost.icon{width:40px;height:40px;padding:0}
-.ghost.danger:hover{background:rgba(255,110,80,.18)!important;border-color:rgba(255,110,80,.55)!important;color:#ff9a86}
-.link{font-size:13px;color:#b9ab8d!important}.link:hover{color:#ffd24a!important}
+.ghost.danger:hover{background:rgba(240,120,90,.18)!important;border-color:rgba(240,120,90,.55)!important;color:#f5a08a}
+.link{font-size:13px;color:#9db8ac!important}.link:hover{color:#ffd86b!important}
 
-.input{display:block;width:100%;background:rgba(19,14,7,.75);border:1px solid rgba(255,210,90,.16);border-radius:16px;padding:13px 16px;color:#fbf3e2;font-size:14.5px;outline:none;transition:border-color .15s,box-shadow .15s}
-.input::placeholder{color:#857a62}
-.input:focus{border-color:#ffd24a;box-shadow:0 0 0 4px rgba(255,210,74,.14)}
+.input{display:block;width:100%;background:rgba(3,24,20,.7);border:1px solid rgba(233,185,73,.25);border-radius:14px;padding:13px 16px;color:#f7ecd0;font-size:14.5px;outline:none;transition:border-color .15s,box-shadow .15s}
+.input::placeholder{color:#6f8f83}
+.input:focus{border-color:#ffd86b;box-shadow:0 0 0 4px rgba(255,216,107,.14)}
 .input:disabled,.input[readonly]{opacity:.6;cursor:not-allowed}
 select.input{appearance:none;-webkit-appearance:none;cursor:pointer;padding-right:40px;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23b9ab8d' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%239db8ac' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 16px center}
-select.input option{background:#1e1508;color:#fbf3e2}
+select.input option{background:#082c25;color:#f7ecd0}
 textarea.input{resize:none;line-height:1.5}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .count{width:96px;text-align:center;font-weight:700}
-.date{background:transparent;border:0;color:#fbf3e2;font-size:13px;font-weight:600;cursor:pointer;color-scheme:dark;width:122px;outline:none}
-.err{display:flex;gap:10px;margin-top:20px;padding:12px 14px;border-radius:16px;background:rgba(255,110,80,.10);border:1px solid rgba(255,110,80,.32);color:#ff9a86;font-size:12.5px}
-.lock-note{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:16px;background:rgba(255,210,74,.08);border:1px solid rgba(255,210,74,.22);color:#ffd24a;font-size:12.5px}
+.date{background:transparent;border:0;color:#f7ecd0;font-size:13px;font-weight:600;cursor:pointer;color-scheme:dark;width:122px;outline:none}
+.err{display:flex;gap:10px;margin-top:20px;padding:12px 14px;border-radius:14px;background:rgba(240,120,90,.10);border:1px solid rgba(240,120,90,.35);color:#f5a08a;font-size:12.5px;text-align:left}
+.lock-note{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:14px;background:rgba(233,185,73,.09);border:1px solid rgba(233,185,73,.3);color:#ffd86b;font-size:12.5px}
 
-.habit{display:flex;align-items:center;gap:16px;padding:14px 6px;cursor:pointer;border-radius:16px;transition:background .15s}
-.habit+.habit,.item+.item{border-top:1px solid rgba(255,210,90,.10)}
-.habit:hover{background:rgba(255,226,130,.05)}
+.habit{display:flex;align-items:center;gap:16px;padding:14px 6px;cursor:pointer;border-radius:14px;transition:background .15s}
+.habit+.habit,.item+.item{border-top:1px solid rgba(233,185,73,.14)}
+.habit:hover{background:rgba(233,185,73,.06)}
 .habit .name{flex:1;font-weight:600;font-size:14.5px}
-.habit.done .name{color:#b9ab8d;text-decoration:line-through;text-decoration-color:rgba(255,210,74,.7)}
+.habit.done .name{color:#9db8ac;text-decoration:line-through;text-decoration-color:rgba(255,216,107,.7)}
 .habit.locked{cursor:default}
 .habit.locked:hover{background:transparent}
-.circle{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .15s}
+.circle{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .15s}
 .circle:hover{transform:scale(1.08)}
 .circle:disabled{cursor:default}
 .circle:disabled:hover{transform:none}
 .item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 6px}
 
-.cal-head{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;text-align:center;font-size:11px;color:#b9ab8d;margin-bottom:8px}
+.cal-head{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;text-align:center;font-size:11px;color:#9db8ac;margin-bottom:8px}
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
-.day{aspect-ratio:1;border-radius:16px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;transition:transform .15s}
+.day{aspect-ratio:1;border-radius:14px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;transition:transform .15s}
 .day:hover{transform:scale(1.07)}
 .bars{display:flex;align-items:flex-end;gap:6px;height:170px}
 .bars>div{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px}
-.bars i{display:block;width:100%;border-radius:999px;transition:height .5s}
-.bars span{font-size:10px;color:#b9ab8d}
+.bars i{display:block;width:100%;border-radius:999px 999px 4px 4px;transition:height .5s}
+.bars span{font-size:10px;color:#9db8ac}
 
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:60;padding:11px 20px;border-radius:999px;font-size:13px;font-weight:600}
-.nav{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:50;display:flex;gap:4px;padding:6px;border-radius:999px;border:1px solid rgba(255,210,90,.18);background:rgba(30,21,8,.88);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 20px 40px -10px rgba(0,0,0,.75);margin-bottom:env(safe-area-inset-bottom,0px)}
-.nav button{display:flex;align-items:center;gap:8px;border-radius:999px;padding:11px 15px;font-size:13px;font-weight:700;color:#b9ab8d;transition:all .2s}
-.nav button:hover{color:#fbf3e2}
-.nav button.on{background:linear-gradient(135deg,#ffe27a,#ffb703 55%,#ff9a1f);color:#2a1a05;box-shadow:0 8px 20px -6px rgba(255,170,20,.7)}
+.nav{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:50;display:flex;gap:4px;padding:6px;border-radius:26px;border:1px solid rgba(233,185,73,.35);background:rgba(4,33,28,.9);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 20px 40px -10px rgba(0,0,0,.8);margin-bottom:env(safe-area-inset-bottom,0px)}
+.nav button{display:flex;align-items:center;gap:8px;border-radius:18px;padding:11px 15px;font-size:13px;font-weight:700;color:#9db8ac;transition:all .2s}
+.nav button:hover{color:#f7ecd0}
+.nav button.on{border-radius:999px 999px 16px 16px;background:linear-gradient(160deg,#ffe58a,#ffc533 55%,#e9a62a);color:#0b2e27;box-shadow:0 8px 20px -6px rgba(255,190,40,.65)}
+
 .auth{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.auth .card{width:100%;max-width:420px;padding:34px 30px}
-.auth h1{background:linear-gradient(135deg,#fff1b8,#ffc72c 55%,#ff9f1c);-webkit-background-clip:text;background-clip:text;color:transparent}
+.auth .card{width:100%;max-width:420px;padding:70px 30px 34px;border-radius:200px 200px 22px 22px;text-align:center;
+  box-shadow:0 0 0 3px #04211c,0 0 0 5px #e9b949,0 0 0 9px #04211c,0 0 0 10px rgba(233,185,73,.55),0 30px 60px -25px rgba(0,0,0,.8)}
+.auth h1{background:linear-gradient(135deg,#fff0b0,#ffd04a 55%,#e9a62a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.auth .orn{margin:16px auto 0}
 .rise{animation:rise .6s ease-out both}
 @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
-.hx button:focus-visible,.hx input:focus-visible,.hx select:focus-visible{outline:2px solid #ffd24a;outline-offset:2px}
-@media (max-width:480px){.page-title{font-size:28px}.hero .num{font-size:54px}.nav button{padding:11px 12px}.two{grid-template-columns:1fr}}
+.hx button:focus-visible,.hx input:focus-visible,.hx select:focus-visible{outline:2px solid #ffd86b;outline-offset:2px}
+@media (max-width:480px){.page-title{font-size:34px}.hero{border-radius:170px 170px 22px 22px;padding-top:60px}.hero .num{font-size:58px}.nav button{padding:11px 12px}.two{grid-template-columns:1fr}.auth .card{border-radius:170px 170px 22px 22px}}
 @media (prefers-reduced-motion:reduce){.rise{animation:none}*{transition:none!important}}
 `;
 
 // ============================================================================
 // SMALL COMPONENTS
 // ============================================================================
+function Ornament({ style }) {
+  return <div className="orn" aria-hidden="true" style={style}><i /><b /><i /></div>;
+}
+
+function PageTitle({ children }) {
+  return (<div><h2 className="serif page-title">{children}</h2><Ornament /></div>);
+}
+
 function SunArc({ pct }) {
   const p = Math.max(0, Math.min(100, pct)) / 100;
   const cx = 130, cy = 130, r = 110;
@@ -209,24 +242,26 @@ function SunArc({ pct }) {
   return (
     <svg viewBox="0 0 260 150" className="arc" role="img" aria-label={`${pct}% of today's habits completed`}>
       <defs>
-        <linearGradient id="arcg" x1="0" x2="1"><stop offset="0" stopColor="#7a3b00" /><stop offset="1" stopColor="#2a1a05" /></linearGradient>
+        <linearGradient id="arcg" x1="0" x2="1"><stop offset="0" stopColor="#14665a" /><stop offset="1" stopColor="#0b2e27" /></linearGradient>
         <radialGradient id="glow"><stop offset="0" stopColor="#fffbe6" stopOpacity="1" /><stop offset="1" stopColor="#fffbe6" stopOpacity="0" /></radialGradient>
       </defs>
-      <path d={d} fill="none" stroke="rgba(42,26,5,.16)" strokeWidth="14" strokeLinecap="round" />
+      <path d={d} fill="none" stroke="rgba(11,46,39,.18)" strokeWidth="14" strokeLinecap="round" />
       <path d={d} fill="none" stroke="url(#arcg)" strokeWidth="14" strokeLinecap="round" strokeDasharray={len} strokeDashoffset={len * (1 - p)} style={{ transition: 'stroke-dashoffset .9s ease' }} />
-      <circle cx={x} cy={y} r="28" fill="url(#glow)" />
-      <circle cx={x} cy={y} r="9" fill="#fffdf2" stroke="#2a1a05" strokeWidth="2" />
-      <line x1="10" x2="250" y1={cy + 8} y2={cy + 8} stroke="rgba(42,26,5,.2)" />
+      <g transform={`translate(${x} ${y})`}>
+        <circle r="30" fill="url(#glow)" />
+        <polygon points={starPoints(0.36)} fill="#fffdf0" stroke="#0b2e27" strokeWidth="1.6" strokeLinejoin="round" />
+      </g>
+      <line x1="10" x2="250" y1={cy + 8} y2={cy + 8} stroke="rgba(11,46,39,.25)" />
     </svg>
   );
 }
 
 function StateButton({ status, onClick, disabled }) {
   const look = status === 'done'
-    ? { background: 'linear-gradient(135deg,#ffe27a,#ffb703)', borderColor: '#ffd24a', color: '#2a1a05' }
+    ? { background: 'linear-gradient(135deg,#ffe58a,#e9a62a)', borderColor: 'transparent', color: '#0b2e27', clipPath: STAR_CLIP }
     : status === 'missed'
-    ? { background: 'rgba(255,110,80,.18)', borderColor: 'rgba(255,110,80,.6)', color: '#ff9a86' }
-    : { background: 'transparent', borderColor: 'rgba(255,226,130,.3)', color: 'transparent' };
+    ? { background: 'rgba(240,120,90,.18)', borderColor: 'rgba(240,120,90,.6)', color: '#f5a08a' }
+    : { background: 'transparent', borderColor: 'rgba(233,185,73,.4)', color: 'transparent' };
   return (
     <button onClick={onClick} disabled={disabled} className="circle" style={{ ...look, border: '1.5px solid ' + look.borderColor }}
       aria-label={`Status: ${status === 'empty' ? 'pending' : status}.${disabled ? ' Locked.' : ' Tap to change.'}`}>
@@ -461,7 +496,7 @@ export default function App() {
     return (
       <div className="hx auth">
         <style>{STYLES}</style>
-        <p className="serif mute" style={{ fontSize: 22 }}>Loading your day…</p>
+        <p className="serif mute" style={{ fontSize: 24 }}>Loading your day…</p>
       </div>
     );
   }
@@ -471,7 +506,8 @@ export default function App() {
       <div className="hx auth">
         <style>{STYLES}</style>
         <div className="card rise">
-          <h1 className="serif" style={{ fontSize: 40, lineHeight: 1.1 }}>Rise early.<br />Stay steady.</h1>
+          <h1 className="serif" style={{ fontSize: 42, lineHeight: 1.1 }}>Rise early.<br />Stay steady.</h1>
+          <Ornament />
           <p className="mute sm" style={{ marginTop: 14 }}>HabitX tracks your prayers, discipline, health and creative work in one daily checklist.</p>
           {authError && (<div className="err"><AlertCircle size={16} style={{ flexShrink: 0 }} /><span>{authError}</span></div>)}
           <form onSubmit={handleEmailAuth} className="form" style={{ marginTop: 24 }}>
@@ -512,6 +548,8 @@ export default function App() {
 
         {activeTab === 'today' && (
           <div className="stack rise">
+            <p className="bismillah" lang="ar" dir="rtl">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</p>
+
             <section className="card hero">
               <p className="mute sm">{greeting()}{firstName ? `, ${firstName}` : ''}</p>
               <SunArc pct={today.pct} />
@@ -528,13 +566,14 @@ export default function App() {
 
             <section className="card">
               <div className="row between end">
-                <div><h3 style={{ fontSize: 15, fontWeight: 700 }}>Durood Shareef</h3><p className="mute xs" style={{ marginTop: 2 }}>Target {today.duroodTarget} today</p></div>
-                <p className="serif sun" style={{ fontSize: 40, lineHeight: 1 }}>{today.duroodCount}</p>
+                <div><h3 className="t">Durood Shareef</h3><p className="mute xs" style={{ marginTop: 2 }}>Target {today.duroodTarget} today</p></div>
+                <p className="serif sun" style={{ fontSize: 44, lineHeight: 1 }}>{today.duroodCount}</p>
               </div>
               <div className="bar"><div style={{ width: `${today.duroodPct}%` }} /></div>
             </section>
 
-            <blockquote className="quote">
+            <blockquote className="quote center">
+              <Ornament style={{ margin: '0 auto 14px', maxWidth: 160 }} />
               <p className="serif">“{quote.text}”</p>
               <footer>{quote.author}</footer>
             </blockquote>
@@ -544,7 +583,7 @@ export default function App() {
         {activeTab === 'tracker' && (
           <div className="stack rise">
             <div className="row between" style={{ flexWrap: 'wrap', gap: 12 }}>
-              <h2 className="serif page-title">{selectedDate === todayKey ? 'Today' : formatDisplayDate(selectedDate)}</h2>
+              <PageTitle>{selectedDate === todayKey ? 'Today' : formatDisplayDate(selectedDate)}</PageTitle>
               <div className="row g8">
                 <button className="ghost icon" aria-label="Previous day" onClick={() => setSelectedDate(addDays(selectedDate, -1))}><ChevronLeft size={16} /></button>
                 <input type="date" className="date" aria-label="Pick a date" value={selectedDate} onChange={(e) => e.target.value && setSelectedDate(e.target.value)} />
@@ -555,7 +594,7 @@ export default function App() {
             {lockedDay ? (
               <p className="lock-note"><Lock size={14} style={{ flexShrink: 0 }} />This day has passed and is locked. Habits you didn’t finish count as missed.</p>
             ) : (
-              <p className="mute xs" style={{ marginTop: 6 }}>Tap the circle to cycle: pending, done, missed.</p>
+              <p className="mute xs">Tap the circle to cycle: pending, done, missed.</p>
             )}
 
             {CATEGORIES.map((cat) => {
@@ -603,7 +642,7 @@ export default function App() {
         {activeTab === 'calendar' && (
           <div className="stack rise">
             <div className="row between">
-              <h2 className="serif page-title">{monthLabel}</h2>
+              <PageTitle>{monthLabel}</PageTitle>
               <div className="row g8">
                 <button className="ghost icon" aria-label="Previous month" onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1))}><ChevronLeft size={16} /></button>
                 <button className="ghost icon" aria-label="Next month" onClick={() => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1))}><ChevronRight size={16} /></button>
@@ -619,9 +658,9 @@ export default function App() {
                   return (
                     <button key={k} className="day" onClick={() => goDay(k)} aria-label={`${formatDisplayDate(k)}: ${pct}% complete`}
                       style={{
-                        background: logged ? `linear-gradient(145deg,rgba(255,226,122,${0.14 + (pct / 100) * 0.86}),rgba(255,160,30,${0.10 + (pct / 100) * 0.9}))` : 'rgba(255,226,130,.06)',
-                        color: logged && pct > 55 ? '#2a1a05' : '#fbf3e2',
-                        boxShadow: k === todayKey ? '0 0 0 2px #fff1b8' : 'none',
+                        background: logged ? `linear-gradient(145deg,rgba(255,229,138,${0.14 + (pct / 100) * 0.86}),rgba(233,166,42,${0.10 + (pct / 100) * 0.9}))` : 'rgba(233,185,73,.07)',
+                        color: logged && pct > 55 ? '#0b2e27' : '#f7ecd0',
+                        boxShadow: k === todayKey ? '0 0 0 2px #fff0b0' : 'none',
                       }}>{parseDateKey(k).getDate()}</button>
                   );
                 })}
@@ -633,7 +672,7 @@ export default function App() {
 
         {activeTab === 'stats' && (
           <div className="stack rise">
-            <h2 className="serif page-title">Your consistency</h2>
+            <PageTitle>Your consistency</PageTitle>
             <section className="card strip">
               <div><p className="v serif">{analytics.weekly}%</p><p className="l">7-day average</p></div>
               <div><p className="v serif">{analytics.monthly}%</p><p className="l">30-day average</p></div>
@@ -646,7 +685,7 @@ export default function App() {
                   const pct = getDayMetrics(k).pct;
                   return (
                     <div key={k} title={`${formatDisplayDate(k)}: ${pct}%`}>
-                      <i style={{ height: `${Math.max(pct, 4)}%`, background: pct ? 'linear-gradient(180deg,#ffe27a,#ff9f1c)' : 'rgba(255,226,130,.10)' }} />
+                      <i style={{ height: `${Math.max(pct, 4)}%`, background: pct ? 'linear-gradient(180deg,#ffe58a,#e9a62a)' : 'rgba(233,185,73,.12)' }} />
                       <span>{parseDateKey(k).getDate()}</span>
                     </div>
                   );
@@ -658,7 +697,7 @@ export default function App() {
 
         {activeTab === 'manage' && (
           <div className="stack rise">
-            <h2 className="serif page-title">Your habits</h2>
+            <PageTitle>Your habits</PageTitle>
             <form onSubmit={handleAddHabit} className="card form">
               <h3 className="t">Add a habit</h3>
               <input className="input" required placeholder="e.g. Read 10 pages" aria-label="Habit name" value={newHabitName} onChange={(e) => setNewHabitName(e.target.value)} />
