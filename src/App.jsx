@@ -32,11 +32,11 @@ const appId = 'habitx-discipline-app';
 // ============================================================================
 const DEFAULT_HABITS = [
   { id: 'def-1', name: 'Wake up at 4:00 AM', type: 'boolean', category: 'Discipline', order: 1, archived: false },
-  { id: 'def-2', name: 'Fajr + Yaseen', type: 'boolean', category: 'Islamic Routine', order: 2, archived: false },
+  { id: 'def-2', name: 'Fajr + Surah Yaseen', type: 'boolean', category: 'Islamic Routine', order: 2, archived: false },
   { id: 'def-3', name: 'Zohar', type: 'boolean', category: 'Islamic Routine', order: 3, archived: false },
   { id: 'def-4', name: 'Asr', type: 'boolean', category: 'Islamic Routine', order: 4, archived: false },
-  { id: 'def-5', name: 'Maghrib + Waqiya', type: 'boolean', category: 'Islamic Routine', order: 5, archived: false },
-  { id: 'def-6', name: 'Isha + Mulk', type: 'boolean', category: 'Islamic Routine', order: 6, archived: false },
+  { id: 'def-5', name: 'Maghrib + Surah Waqiya', type: 'boolean', category: 'Islamic Routine', order: 5, archived: false },
+  { id: 'def-6', name: 'Isha + Surah Mulk', type: 'boolean', category: 'Islamic Routine', order: 6, archived: false },
   { id: 'def-7', name: 'Number of Durood Shareef', type: 'numeric', category: 'Islamic Routine', order: 7, target: 100, archived: false },
   { id: 'def-8', name: 'Running', type: 'boolean', category: 'Physical Health', order: 8, archived: false },
   { id: 'def-9', name: 'Healthy Breakfast', type: 'boolean', category: 'Physical Health', order: 9, archived: false },
@@ -108,7 +108,7 @@ html,body,#root{margin:0;min-height:100%;background:#04211c}
   background-attachment:fixed}
 .hx h1,.hx h2,.hx h3,.hx p,.hx blockquote,.hx ul{margin:0;padding:0}
 .hx ul{list-style:none}
-.hx button{font-family:inherit;color:#f7ecd0;background:none;border:0;cursor:pointer;padding:0}
+.hx button{font-family:inherit;color:#f7ecd0;background:none;border:0;cursor:pointer;padding:3}
 .hx input,.hx select,.hx textarea{font-family:inherit}
 .serif{font-family:'Amiri','Times New Roman',serif;font-weight:400;letter-spacing:0}
 .mute{color:#9db8ac}.sun{color:#ffd86b}.coral{color:#ff9a4d}.pink{color:#f09a80}
@@ -203,6 +203,13 @@ textarea.input{resize:none;line-height:1.5}
 .bars i{display:block;width:100%;border-radius:999px 999px 4px 4px;transition:height .5s}
 .bars span{font-size:10px;color:#9db8ac}
 
+.notes li{display:flex;align-items:center;gap:10px;padding:4px 0}
+.notes .dot{width:11px;height:11px;flex-shrink:0;background:linear-gradient(135deg,#ffe58a,#e9b949);clip-path:var(--star)}
+.note-input{flex:1;min-width:0;background:transparent;border:0;border-bottom:1px solid rgba(233,185,73,.22);color:#f7ecd0;font-size:14.5px;padding:9px 2px;outline:none;transition:border-color .15s}
+.note-input::placeholder{color:#6f8f83}
+.note-input:focus{border-bottom-color:#ffd86b}
+.note-text{flex:1;padding:8px 2px;overflow-wrap:anywhere}
+.ghost.icon.sm{width:30px;height:30px}
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:60;padding:11px 20px;border-radius:999px;font-size:13px;font-weight:600}
 .nav{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:50;display:flex;gap:4px;padding:6px;border-radius:26px;border:1px solid rgba(233,185,73,.35);background:rgba(4,33,28,.9);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 20px 40px -10px rgba(0,0,0,.8);margin-bottom:env(safe-area-inset-bottom,0px)}
 .nav button{display:flex;align-items:center;gap:8px;border-radius:18px;padding:11px 15px;font-size:13px;font-weight:700;color:#9db8ac;transition:all .2s}
@@ -302,7 +309,10 @@ export default function App() {
   const [newHabitCategory, setNewHabitCategory] = useState('Discipline');
   const [newHabitTarget, setNewHabitTarget] = useState(100);
 
-  const [noteDraft, setNoteDraft] = useState('');
+  const [noteLines, setNoteLines] = useState([]);
+  const [focusIdx, setFocusIdx] = useState(-1);
+  const [recordsLoaded, setRecordsLoaded] = useState(false);
+  const syncedRef = useRef(null); // which date the note lines were last loaded for
   const noteTimeoutRef = useRef(null);
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2800); };
@@ -321,7 +331,7 @@ export default function App() {
 
   // ---- data
   useEffect(() => {
-    if (!user) { setHabits([]); setDailyRecords({}); return; }
+    if (!user) { setHabits([]); setDailyRecords({}); setRecordsLoaded(false); syncedRef.current = null; return; }
     const uid = user.uid;
     const base = ['artifacts', appId, 'users', uid];
 
@@ -342,6 +352,7 @@ export default function App() {
       const recs = {};
       snap.docs.forEach((d) => { recs[d.id] = d.data(); });
       setDailyRecords(recs);
+      setRecordsLoaded(true);
       setSyncStatus('synced');
     });
     const unsubSettings = onSnapshot(doc(db, ...base, 'settings', 'preferences'), (s) => {
@@ -350,7 +361,17 @@ export default function App() {
     return () => { unsubHabits(); unsubRecords(); unsubSettings(); };
   }, [user]);
 
-  useEffect(() => { setNoteDraft(dailyRecords[selectedDate]?.note || ''); }, [selectedDate, dailyRecords[selectedDate]?.note]);
+  // load the bullet notes once per opened day (old paragraph notes become one bullet per line)
+  useEffect(() => {
+    if (!recordsLoaded || syncedRef.current === selectedDate) return;
+    const rec = dailyRecords[selectedDate];
+    const lines = Array.isArray(rec?.notes)
+      ? rec.notes
+      : (rec?.note ? rec.note.split('\n').filter((l) => l.trim()) : []);
+    setNoteLines(lines);
+    setFocusIdx(-1);
+    syncedRef.current = selectedDate;
+  }, [selectedDate, recordsLoaded, dailyRecords]);
 
   // ---- actions
   const handleEmailAuth = async (e) => {
@@ -398,19 +419,36 @@ export default function App() {
     updateHabitStatus(dateKey, habitId, cur === 'empty' ? 'done' : cur === 'done' ? 'missed' : 'empty');
   };
 
-  const handleNoteChange = (val) => {
-    if (isLocked(selectedDate)) return;
-    const dateAtEdit = selectedDate; // a delayed save must never land on a different day
-    setNoteDraft(val);
+  const saveNotes = (dateKey, lines) => {
     clearTimeout(noteTimeoutRef.current);
     noteTimeoutRef.current = setTimeout(async () => {
-      if (!user || isLocked(dateAtEdit)) return;
+      if (!user || isLocked(dateKey)) return;
       try {
-        const existing = dailyRecords[dateAtEdit] || { statuses: {} };
-        await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'dailyRecords', dateAtEdit),
-          { date: dateAtEdit, statuses: existing.statuses || {}, note: val, updatedAt: Date.now() }, { merge: true });
+        await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'dailyRecords', dateKey),
+          { date: dateKey, notes: lines.filter((l) => l.trim()), updatedAt: Date.now() }, { merge: true });
       } catch (err) { console.error(err); }
     }, 600);
+  };
+
+  const handleLineChange = (i, val) => {
+    if (isLocked(selectedDate)) return;
+    const next = noteLines.map((l, idx) => (idx === i ? val : l));
+    setNoteLines(next);
+    saveNotes(selectedDate, next);
+  };
+
+  const addLine = (afterIdx = noteLines.length - 1) => {
+    if (isLocked(selectedDate)) return;
+    const next = [...noteLines.slice(0, afterIdx + 1), '', ...noteLines.slice(afterIdx + 1)];
+    setNoteLines(next);
+    setFocusIdx(afterIdx + 1);
+  };
+
+  const removeLine = (i) => {
+    if (isLocked(selectedDate)) return;
+    const next = noteLines.filter((_, idx) => idx !== i);
+    setNoteLines(next);
+    saveNotes(selectedDate, next);
   };
 
   const handleAddHabit = async (e) => {
@@ -633,8 +671,30 @@ export default function App() {
 
             <section className="card">
               <h3 className="t" style={{ marginBottom: 12 }}>Journal</h3>
-              <textarea className="input" rows={4} value={noteDraft} readOnly={lockedDay} onChange={(e) => handleNoteChange(e.target.value)}
-                placeholder={lockedDay ? 'No journal entry for this day.' : 'What went well today? What will you do differently tomorrow?'} />
+
+              {lockedDay ? (
+                noteLines.length ? (
+                  <ul className="notes">
+                    {noteLines.map((l, i) => (<li key={i}><b className="dot" /><span className="note-text">{l}</span></li>))}
+                  </ul>
+                ) : <p className="mute sm">No notes for this day.</p>
+              ) : (
+                <>
+                  <ul className="notes">
+                    {noteLines.map((l, i) => (
+                      <li key={i}>
+                        <b className="dot" />
+                        <input className="note-input" value={l} autoFocus={i === focusIdx}
+                          placeholder="Write a note…" aria-label={`Note ${i + 1}`}
+                          onChange={(e) => handleLineChange(i, e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addLine(i); } }} />
+                        <button className="ghost icon sm" aria-label={`Remove note ${i + 1}`} onClick={() => removeLine(i)}><X size={14} /></button>
+                      </li>
+                    ))}
+                  </ul>
+                  <button className="ghost" style={{ marginTop: 12 }} onClick={() => addLine()}><Plus size={14} />Add a line</button>
+                </>
+              )}
             </section>
           </div>
         )}
