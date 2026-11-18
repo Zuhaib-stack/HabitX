@@ -4,10 +4,10 @@ import {
   getAuth, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword,
   signInWithEmailAndPassword, signOut, updateProfile
 } from 'firebase/auth';
-import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, writeBatch } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from 'firebase/firestore';
 import {
-  Sunrise, ListChecks, CalendarDays, BarChart3, SlidersHorizontal, Check, X,
-  ChevronLeft, ChevronRight, Flame, LogOut, Plus, Archive, Trash2, AlertCircle, Cloud, Lock
+  Sunrise, ListChecks, CalendarDays, BarChart3, BookOpen, Check, X,
+  ChevronLeft, ChevronRight, Flame, LogOut, Plus, AlertCircle, Cloud, Lock
 } from 'lucide-react';
 
 // ============================================================================
@@ -30,20 +30,6 @@ const appId = 'habitx-discipline-app';
 // ============================================================================
 // DATA
 // ============================================================================
-const DEFAULT_HABITS = [
-  { id: 'def-1', name: 'Wake up at 4:00 AM', type: 'boolean', category: 'Discipline', order: 1, archived: false },
-  { id: 'def-2', name: 'Fajr + Surah Yaseen', type: 'boolean', category: 'Islamic Routine', order: 2, archived: false },
-  { id: 'def-3', name: 'Zohar', type: 'boolean', category: 'Islamic Routine', order: 3, archived: false },
-  { id: 'def-4', name: 'Asr', type: 'boolean', category: 'Islamic Routine', order: 4, archived: false },
-  { id: 'def-5', name: 'Maghrib + Surah Waqiya', type: 'boolean', category: 'Islamic Routine', order: 5, archived: false },
-  { id: 'def-6', name: 'Isha + Surah Mulk', type: 'boolean', category: 'Islamic Routine', order: 6, archived: false },
-  { id: 'def-7', name: 'Number of Durood Shareef', type: 'numeric', category: 'Islamic Routine', order: 7, target: 100, archived: false },
-  { id: 'def-8', name: 'Running', type: 'boolean', category: 'Physical Health', order: 8, archived: false },
-  { id: 'def-9', name: 'Healthy Breakfast', type: 'boolean', category: 'Physical Health', order: 9, archived: false },
-  { id: 'def-10', name: 'One Video (Content Creation)', type: 'boolean', category: 'Content Creation', order: 10, archived: false },
-  { id: 'def-11', name: 'Sleep After 11 PM', type: 'boolean', category: 'Discipline', order: 11, archived: false },
-];
-
 const QUOTES = [
   { text: "The most beloved deeds to Allah are those that are most consistent, even if they are small.", author: "Prophet Muhammad ﷺ (Sahih al-Bukhari)" },
   { text: "Discipline is choosing between what you want now and what you want most.", author: "Abraham Lincoln" },
@@ -54,14 +40,12 @@ const QUOTES = [
   { text: "Guard strictly your prayers, especially the middle prayer, and stand before Allah with devotion.", author: "Surah Al-Baqarah (2:238)" },
 ];
 
-const CATEGORIES = ['Islamic Routine', 'Discipline', 'Physical Health', 'Content Creation', 'Personal Growth'];
-
 const TABS = [
   { id: 'today', label: 'Today', icon: Sunrise },
   { id: 'tracker', label: 'Track', icon: ListChecks },
   { id: 'calendar', label: 'Month', icon: CalendarDays },
   { id: 'stats', label: 'Stats', icon: BarChart3 },
-  { id: 'manage', label: 'Habits', icon: SlidersHorizontal },
+  { id: 'islamic', label: 'Islamic', icon: BookOpen },
 ];
 
 // ============================================================================
@@ -71,6 +55,33 @@ const getLocalDateKey = (d = new Date()) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const parseDateKey = (k) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
 const addDays = (k, n) => { const d = parseDateKey(k); d.setDate(d.getDate() + n); return getLocalDateKey(d); };
+// A Surah-counting cycle runs Wednesday 8:00 PM to the next Wednesday 8:00 PM (device local time).
+const getSurahCycleWindow = (now = new Date()) => {
+  const start = new Date(now);
+  const daysSinceWednesday = (start.getDay() - 3 + 7) % 7;
+  start.setDate(start.getDate() - daysSinceWednesday);
+  start.setHours(20, 0, 0, 0);
+  if (now < start) start.setDate(start.getDate() - 7);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 7);
+  return { start, end, id: `${getLocalDateKey(start)}_2000` };
+};
+const formatCycleDateTime = (date) => date.toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+const toPrayerApiDate = (date) => `${String(date.getDate()).padStart(2, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}-${date.getFullYear()}`;
+const prayerTimeDate = (date, value) => {
+  const clean = String(value || '').split(' ')[0];
+  const [hours, minutes] = clean.split(':').map(Number);
+  const result = new Date(date);
+  result.setHours(hours || 0, minutes || 0, 0, 0);
+  return result;
+};
+const tomorrowDateForPrayer = (date) => { const next = new Date(date); next.setDate(next.getDate() + 1); return next; };
+const displayPrayerTime = (value) => {
+  const clean = String(value || '').split(' ')[0];
+  const [hours, minutes] = clean.split(':').map(Number);
+  const date = new Date(); date.setHours(hours || 0, minutes || 0, 0, 0);
+  return date.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+};
 const formatDisplayDate = (k) =>
   parseDateKey(k).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 const getQuoteForDate = (k) =>
@@ -216,6 +227,11 @@ textarea.input{resize:none;line-height:1.5}
 .nav button:hover{color:#f7ecd0}
 .nav button.on{border-radius:999px 999px 16px 16px;background:linear-gradient(160deg,#ffe58a,#ffc533 55%,#e9a62a);color:#0b2e27;box-shadow:0 8px 20px -6px rgba(255,190,40,.65)}
 
+.surah-row{display:flex;align-items:center;gap:10px;padding:14px 4px;border-top:1px solid rgba(233,185,73,.14)}
+.surah-row:first-child{border-top:0}
+.surah-count{min-width:34px;text-align:center;font-size:20px;font-weight:800;color:#ffd86b}
+.surah-action{width:36px;height:36px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(233,185,73,.35)!important;background:rgba(233,185,73,.09)!important;color:#ffd86b!important;font-size:20px;font-weight:700}
+.surah-action:hover{background:rgba(233,185,73,.2)!important}
 .auth{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
 .auth .card{width:100%;max-width:420px;padding:70px 30px 34px;border-radius:200px 200px 22px 22px;text-align:center;
   box-shadow:0 0 0 3px #04211c,0 0 0 5px #e9b949,0 0 0 9px #04211c,0 0 0 10px rgba(233,185,73,.55),0 30px 60px -25px rgba(0,0,0,.8)}
@@ -302,12 +318,25 @@ export default function App() {
 
   const [habits, setHabits] = useState([]);
   const [dailyRecords, setDailyRecords] = useState({});
-  const [userSettings, setUserSettings] = useState({ duroodTarget: 100 });
+  const [prayerCity, setPrayerCity] = useState('Dadri');
+  const [prayerCityDraft, setPrayerCityDraft] = useState('Dadri');
+  const [prayerSchedule, setPrayerSchedule] = useState(null);
+  const [prayerLoading, setPrayerLoading] = useState(false);
+  const [prayerError, setPrayerError] = useState('');
+  const [prayerRecords, setPrayerRecords] = useState({});
+  const [islamicSection, setIslamicSection] = useState('prayer');
+  const [surahCycles, setSurahCycles] = useState({});
+  const [newSurahName, setNewSurahName] = useState('');
+  const [clockNow, setClockNow] = useState(() => new Date());
 
   const [newHabitName, setNewHabitName] = useState('');
   const [newHabitType, setNewHabitType] = useState('boolean');
   const [newHabitCategory, setNewHabitCategory] = useState('Discipline');
   const [newHabitTarget, setNewHabitTarget] = useState(100);
+  const [customCategories, setCustomCategories] = useState([]);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [openHabitCategory, setOpenHabitCategory] = useState(null);
 
   const [noteLines, setNoteLines] = useState([]);
   const [focusIdx, setFocusIdx] = useState(-1);
@@ -320,8 +349,10 @@ export default function App() {
   // ---- midnight rollover
   useEffect(() => {
     const t = setInterval(() => {
-      const k = getLocalDateKey();
+      const now = new Date();
+      const k = getLocalDateKey(now);
       setTodayKey((prev) => (prev === k ? prev : k));
+      setClockNow(now); // also refreshes the Surah cycle exactly around its 8 PM boundary
     }, 30000);
     return () => clearInterval(t);
   }, []);
@@ -331,22 +362,14 @@ export default function App() {
 
   // ---- data
   useEffect(() => {
-    if (!user) { setHabits([]); setDailyRecords({}); setRecordsLoaded(false); syncedRef.current = null; return; }
+    if (!user) { setHabits([]); setDailyRecords({}); setPrayerRecords({}); setSurahCycles({}); setCustomCategories([]); setRecordsLoaded(false); syncedRef.current = null; return; }
     const uid = user.uid;
     const base = ['artifacts', appId, 'users', uid];
 
-    const unsubHabits = onSnapshot(collection(db, ...base, 'habits'), async (snap) => {
-      if (snap.empty) {
-        try {
-          const batch = writeBatch(db);
-          DEFAULT_HABITS.forEach((h) => batch.set(doc(db, ...base, 'habits', h.id), { ...h, createdAt: Date.now() }));
-          await batch.commit();
-        } catch (err) { console.error(err); }
-      } else {
-        const loaded = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        loaded.sort((a, b) => (a.order || 0) - (b.order || 0));
-        setHabits(loaded);
-      }
+    const unsubHabits = onSnapshot(collection(db, ...base, 'habits'), (snap) => {
+      const loaded = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      loaded.sort((a, b) => (a.order || 0) - (b.order || 0));
+      setHabits(loaded);
     });
     const unsubRecords = onSnapshot(collection(db, ...base, 'dailyRecords'), (snap) => {
       const recs = {};
@@ -356,10 +379,45 @@ export default function App() {
       setSyncStatus('synced');
     });
     const unsubSettings = onSnapshot(doc(db, ...base, 'settings', 'preferences'), (s) => {
-      if (s.exists()) setUserSettings((p) => ({ ...p, ...s.data() }));
+      if (s.exists()) {
+        const settings = s.data();
+        if (settings.prayerCity) { setPrayerCity(settings.prayerCity); setPrayerCityDraft(settings.prayerCity); }
+        setCustomCategories(Array.isArray(settings.customCategories) ? settings.customCategories : []);
+      } else setCustomCategories([]);
     });
-    return () => { unsubHabits(); unsubRecords(); unsubSettings(); };
+    const unsubPrayerRecords = onSnapshot(collection(db, ...base, 'prayerRecords'), (snap) => {
+      const records = {}; snap.docs.forEach((d) => { records[d.id] = d.data(); }); setPrayerRecords(records);
+    });
+    const unsubSurahCycles = onSnapshot(collection(db, ...base, 'surahCycles'), (snap) => {
+      const cycles = {};
+      snap.docs.forEach((d) => { cycles[d.id] = d.data(); });
+      setSurahCycles(cycles);
+    });
+    return () => { unsubHabits(); unsubRecords(); unsubSettings(); unsubPrayerRecords(); unsubSurahCycles(); };
   }, [user]);
+
+  // Fetch today's and tomorrow's prayer times so Isha can use tomorrow's Fajr as its deadline.
+  useEffect(() => {
+    if (!user || !prayerCity.trim()) return;
+    let cancelled = false;
+    const loadPrayerTimes = async () => {
+      setPrayerLoading(true); setPrayerError('');
+      try {
+        const todayDate = new Date();
+        const tomorrowDate = new Date(todayDate); tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+        const makeUrl = (date) => `https://api.aladhan.com/v1/timingsByCity/${toPrayerApiDate(date)}?city=${encodeURIComponent(prayerCity.trim())}&country=India&method=1&school=1&timezonestring=Asia/Kolkata`;
+        const [todayResponse, tomorrowResponse] = await Promise.all([fetch(makeUrl(todayDate)), fetch(makeUrl(tomorrowDate))]);
+        if (!todayResponse.ok || !tomorrowResponse.ok) throw new Error('Prayer-time service could not be reached.');
+        const [todayJson, tomorrowJson] = await Promise.all([todayResponse.json(), tomorrowResponse.json()]);
+        if (todayJson.code !== 200 || tomorrowJson.code !== 200) throw new Error('Could not find prayer times for this city. Check the city name.');
+        if (!cancelled) setPrayerSchedule({ date: getLocalDateKey(todayDate), today: todayJson.data.timings, tomorrow: tomorrowJson.data.timings, meta: todayJson.data.meta || null });
+      } catch (error) { if (!cancelled) setPrayerError(error.message || 'Could not load prayer times.'); }
+      finally { if (!cancelled) setPrayerLoading(false); }
+    };
+    loadPrayerTimes();
+    const refresh = setInterval(loadPrayerTimes, 60 * 60 * 1000);
+    return () => { cancelled = true; clearInterval(refresh); };
+  }, [user, prayerCity, todayKey]);
 
   // load the bullet notes once per opened day (old paragraph notes become one bullet per line)
   useEffect(() => {
@@ -451,6 +509,112 @@ export default function App() {
     saveNotes(selectedDate, next);
   };
 
+  const savePrayerCity = async (e) => {
+    e.preventDefault();
+    const city = prayerCityDraft.trim();
+    if (!city || !user) return;
+    try {
+      await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'preferences'), { prayerCity: city }, { merge: true });
+      setPrayerCity(city); setPrayerSchedule(null); setPrayerError(''); showToast(`Prayer location set to ${city}`);
+    } catch { showToast('Could not save prayer location.'); }
+  };
+
+  const markPrayerDone = async (prayerId) => {
+    if (!user) return;
+    const dateKey = getLocalDateKey();
+    const existing = prayerRecords[dateKey] || { statuses: {} };
+    const statuses = { ...(existing.statuses || {}), [prayerId]: 'done' };
+    setPrayerRecords((prev) => ({ ...prev, [dateKey]: { ...existing, statuses } }));
+    try {
+      await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'prayerRecords', dateKey), { date: dateKey, statuses, updatedAt: Date.now() }, { merge: true });
+    } catch { showToast('Could not save prayer status.'); }
+  };
+
+  const prayerRows = (() => {
+    if (!prayerSchedule) return [];
+    const now = new Date();
+    const todayTimes = prayerSchedule.today;
+    const tomorrowTimes = prayerSchedule.tomorrow;
+    const rows = [
+      { id: 'tahajjud', name: 'Tahajjud', time: 'Before Fajr', start: now < prayerTimeDate(now, todayTimes.Fajr) ? new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0) : prayerTimeDate(now, todayTimes.Isha), deadline: prayerTimeDate(now < prayerTimeDate(now, todayTimes.Fajr) ? now : tomorrowDateForPrayer(now), now < prayerTimeDate(now, todayTimes.Fajr) ? todayTimes.Fajr : tomorrowTimes.Fajr), deadlineLabel: now < prayerTimeDate(now, todayTimes.Fajr) ? 'Fajr' : 'next Fajr' },
+      { id: 'fajr', name: 'Fajr', time: todayTimes.Fajr, start: prayerTimeDate(now, todayTimes.Fajr), deadline: prayerTimeDate(now, todayTimes.Sunrise), deadlineLabel: 'Sunrise' },
+      { id: 'zohar', name: 'Zohar', time: todayTimes.Dhuhr, start: prayerTimeDate(now, todayTimes.Dhuhr), deadline: prayerTimeDate(now, todayTimes.Asr), deadlineLabel: 'Asr' },
+      { id: 'asr', name: 'Asr', time: todayTimes.Asr, start: prayerTimeDate(now, todayTimes.Asr), deadline: prayerTimeDate(now, todayTimes.Maghrib), deadlineLabel: 'Maghrib' },
+      { id: 'maghrib', name: 'Magrib', time: todayTimes.Maghrib, start: prayerTimeDate(now, todayTimes.Maghrib), deadline: prayerTimeDate(now, todayTimes.Isha), deadlineLabel: 'Isha' },
+      { id: 'isha', name: 'Isha', time: todayTimes.Isha, start: prayerTimeDate(now, todayTimes.Isha), deadline: prayerTimeDate(tomorrowDateForPrayer(now), tomorrowTimes.Fajr), deadlineLabel: 'next Fajr' },
+    ];
+    return rows.map((row) => {
+      const saved = prayerRecords[getLocalDateKey()]?.statuses?.[row.id];
+      const status = saved === 'done' ? 'done' : now >= row.deadline ? 'missed' : 'pending';
+      const available = now >= row.start && now < row.deadline;
+      return { ...row, status, available };
+    });
+  })();
+
+  const currentSurahCycle = getSurahCycleWindow(clockNow);
+  const currentSurahCycleData = surahCycles[currentSurahCycle.id] || { surahs: [] };
+  const currentSurahs = Array.isArray(currentSurahCycleData.surahs) ? currentSurahCycleData.surahs : [];
+
+  const saveSurahList = async (nextSurahs) => {
+    if (!user) return;
+    const cycleDoc = {
+      cycleId: currentSurahCycle.id,
+      startAt: currentSurahCycle.start.getTime(),
+      endAt: currentSurahCycle.end.getTime(),
+      surahs: nextSurahs,
+      updatedAt: Date.now(),
+    };
+    setSurahCycles((prev) => ({ ...prev, [currentSurahCycle.id]: cycleDoc }));
+    setSyncStatus('syncing');
+    try {
+      await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'surahCycles', currentSurahCycle.id), cycleDoc, { merge: true });
+      setSyncStatus('synced');
+    } catch (err) {
+      console.error(err); setSyncStatus('error'); showToast('Could not save Surah count. Check your connection.');
+    }
+  };
+
+  const handleAddSurah = async (e) => {
+    e.preventDefault();
+    const name = newSurahName.trim();
+    if (!name) return;
+    if (currentSurahs.some((s) => s.name.toLowerCase() === name.toLowerCase())) {
+      showToast('This Surah is already in this week’s list'); return;
+    }
+    const next = [...currentSurahs, { id: `surah-${Date.now()}`, name, total: 0, dailyCounts: {} }];
+    await saveSurahList(next);
+    setNewSurahName('');
+    showToast(`Added ${name}`);
+  };
+
+  const changeSurahCount = (surahId, amount) => {
+    const dateKey = getLocalDateKey(clockNow);
+    const next = currentSurahs.map((surah) => {
+      if (surah.id !== surahId) return surah;
+      const dailyCounts = { ...(surah.dailyCounts || {}) };
+      const nextDaily = Math.max(0, Number(dailyCounts[dateKey] || 0) + amount);
+      if (nextDaily === 0) delete dailyCounts[dateKey]; else dailyCounts[dateKey] = nextDaily;
+      return { ...surah, total: Math.max(0, Number(surah.total || 0) + amount), dailyCounts };
+    });
+    saveSurahList(next);
+  };
+
+  const handleAddCategory = async (e) => {
+    e.preventDefault();
+    const name = newCategoryName.trim();
+    if (!name || !user) return;
+    if (trackCategories.some((category) => category.toLowerCase() === name.toLowerCase())) {
+      showToast('That section already exists'); return;
+    }
+    const next = [...customCategories, name];
+    try {
+      await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'preferences'), { customCategories: next }, { merge: true });
+      setCustomCategories(next);
+      setNewCategoryName(''); setShowCategoryForm(false);
+      showToast(`Added ${name} section`);
+    } catch { showToast('Could not add section. Try again.'); }
+  };
+
   const handleAddHabit = async (e) => {
     e.preventDefault();
     if (!user || !newHabitName.trim()) return;
@@ -464,6 +628,7 @@ export default function App() {
     try {
       await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'habits', id), habit);
       setNewHabitName('');
+      setOpenHabitCategory(null);
       showToast(`Added “${habit.name}”`);
     } catch { showToast('Could not add the habit. Try again.'); }
   };
@@ -479,9 +644,11 @@ export default function App() {
   };
 
   // ---- derived
-  const activeHabits = useMemo(() => habits.filter((h) => !h.archived), [habits]);
-  const booleanHabits = useMemo(() => activeHabits.filter((h) => h.type === 'boolean'), [activeHabits]);
-  const duroodHabit = useMemo(() => activeHabits.find((h) => h.id === 'def-7') || activeHabits.find((h) => h.type === 'numeric'), [activeHabits]);
+  // Keep legacy Islamic habits out of the general Track Habits checklist.
+  const activeHabits = useMemo(() => habits.filter((h) => !h.archived && h.category !== 'Islamic Routine' && !['def-2','def-3','def-4','def-5','def-6','def-7'].includes(h.id)), [habits]);
+  const userTrackHabits = useMemo(() => activeHabits.filter((h) => !/^def-/.test(h.id)), [activeHabits]);
+  const trackCategories = useMemo(() => [...new Set(['Discipline', 'Physical Health', ...customCategories, ...userTrackHabits.map((h) => h.category).filter(Boolean)])], [customCategories, userTrackHabits]);
+  const booleanHabits = useMemo(() => userTrackHabits.filter((h) => h.type === 'boolean'), [userTrackHabits]);
 
   // On a past day, anything not marked "done" counts as "missed"
   const getStatus = (k, habitId) => {
@@ -491,7 +658,6 @@ export default function App() {
   };
 
   const getDayMetrics = (k) => {
-    const rec = dailyRecords[k]?.statuses || {};
     let completed = 0, missed = 0, pending = 0;
     booleanHabits.forEach((h) => {
       const s = getStatus(k, h.id);
@@ -499,12 +665,10 @@ export default function App() {
     });
     const total = booleanHabits.length;
     const pct = total ? Math.round((completed / total) * 100) : 0;
-    const duroodCount = duroodHabit ? Number(rec[duroodHabit.id] || 0) : 0;
-    const duroodTarget = duroodHabit?.target || userSettings.duroodTarget || 100;
-    return { total, completed, missed, pending, pct, duroodCount, duroodTarget, duroodPct: Math.min(100, Math.round((duroodCount / duroodTarget) * 100)) };
+    return { total, completed, missed, pending, pct };
   };
 
-  const today = useMemo(() => getDayMetrics(todayKey), [dailyRecords, booleanHabits, duroodHabit, userSettings, todayKey]);
+  const today = useMemo(() => getDayMetrics(todayKey), [dailyRecords, booleanHabits, todayKey]);
 
   const analytics = useMemo(() => {
     const last14 = Array.from({ length: 14 }, (_, i) => addDays(todayKey, -(13 - i)));
@@ -524,7 +688,7 @@ export default function App() {
     while (dailyRecords[back] && getDayMetrics(back).pct >= 70) { current++; back = addDays(back, -1); }
     const overall = dates.length ? Math.round(dates.reduce((s, k) => s + getDayMetrics(k).pct, 0) / dates.length) : 0;
     return { last14, weekly: avg(7), monthly: avg(30), current, best: Math.max(best, current), overall };
-  }, [dailyRecords, booleanHabits, duroodHabit, todayKey]);
+  }, [dailyRecords, booleanHabits, todayKey]);
 
   const quote = getQuoteForDate(todayKey);
   const goDay = (k) => { setSelectedDate(k); setActiveTab('tracker'); };
@@ -602,14 +766,6 @@ export default function App() {
               <div><p className="v serif">{analytics.best}</p><p className="l">best streak</p></div>
             </section>
 
-            <section className="card">
-              <div className="row between end">
-                <div><h3 className="t">Durood Shareef</h3><p className="mute xs" style={{ marginTop: 2 }}>Target {today.duroodTarget} today</p></div>
-                <p className="serif sun" style={{ fontSize: 44, lineHeight: 1 }}>{today.duroodCount}</p>
-              </div>
-              <div className="bar"><div style={{ width: `${today.duroodPct}%` }} /></div>
-            </section>
-
             <blockquote className="quote center">
               <Ornament style={{ margin: '0 auto 14px', maxWidth: 160 }} />
               <p className="serif">“{quote.text}”</p>
@@ -621,7 +777,7 @@ export default function App() {
         {activeTab === 'tracker' && (
           <div className="stack rise">
             <div className="row between" style={{ flexWrap: 'wrap', gap: 12 }}>
-              <PageTitle>{selectedDate === todayKey ? 'Today' : formatDisplayDate(selectedDate)}</PageTitle>
+              <PageTitle>{selectedDate === todayKey ? 'Track Habits' : formatDisplayDate(selectedDate)}</PageTitle>
               <div className="row g8">
                 <button className="ghost icon" aria-label="Previous day" onClick={() => setSelectedDate(addDays(selectedDate, -1))}><ChevronLeft size={16} /></button>
                 <input type="date" className="date" aria-label="Pick a date" value={selectedDate} onChange={(e) => e.target.value && setSelectedDate(e.target.value)} />
@@ -635,36 +791,61 @@ export default function App() {
               <p className="mute xs">Tap the circle to cycle: pending, done, missed.</p>
             )}
 
-            {CATEGORIES.map((cat) => {
-              const list = activeHabits.filter((h) => h.category === cat);
-              if (!list.length) return null;
+            <div className="row between" style={{ flexWrap: 'wrap', gap: 10 }}>
+              <p className="mute xs">Organise your daily habits into sections.</p>
+              <button className="ghost" onClick={() => setShowCategoryForm((v) => !v)}><Plus size={14} />Add section</button>
+            </div>
+            {showCategoryForm && (
+              <form onSubmit={handleAddCategory} className="card form">
+                <h3 className="t">Create a section</h3>
+                <input className="input" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="e.g. Learning" aria-label="New section name" required />
+                <div className="row g8"><button type="submit" className="btn"><Plus size={15} />Add section</button><button type="button" className="ghost" onClick={() => { setShowCategoryForm(false); setNewCategoryName(''); }}>Cancel</button></div>
+              </form>
+            )}
+
+            {trackCategories.map((cat) => {
+              const list = userTrackHabits.filter((h) => h.category === cat);
               return (
                 <section key={cat} className="card" style={{ padding: '20px 18px' }}>
-                  <h3 className="t" style={{ paddingLeft: 6 }}>{cat}</h3>
-                  <ul>
-                    {list.map((h) => {
-                      const val = dailyRecords[selectedDate]?.statuses?.[h.id];
-                      if (h.type === 'numeric') {
-                        return (
+                  <div className="row between" style={{ marginBottom: 12 }}>
+                    <h3 className="t">{cat}</h3>
+                    <button className="ghost" onClick={() => { setNewHabitCategory(cat); setOpenHabitCategory((current) => current === cat ? null : cat); setNewHabitName(''); setNewHabitType('boolean'); }}><Plus size={14} />Add habit</button>
+                  </div>
+                  {openHabitCategory === cat && (
+                    <form onSubmit={handleAddHabit} className="form" style={{ marginBottom: 14, padding: 12, borderRadius: 14, background: 'rgba(233,185,73,.06)' }}>
+                      <input className="input" required placeholder="Habit name" aria-label={`Habit name in ${cat}`} value={newHabitName} onChange={(e) => setNewHabitName(e.target.value)} />
+                      <div className="two">
+                        <select className="input" aria-label="Habit type" value={newHabitType} onChange={(e) => setNewHabitType(e.target.value)}>
+                          <option value="boolean">Done / missed</option><option value="numeric">Count</option>
+                        </select>
+                        {newHabitType === 'numeric' && <input className="input" type="number" min="1" aria-label="Daily target" placeholder="Daily target" value={newHabitTarget} onChange={(e) => setNewHabitTarget(e.target.value)} />}
+                      </div>
+                      <div className="row g8"><button type="submit" className="btn"><Plus size={15} />Save habit</button><button type="button" className="ghost" onClick={() => setOpenHabitCategory(null)}>Cancel</button></div>
+                    </form>
+                  )}
+                  {list.length === 0 ? <p className="mute xs">No habits in this section yet. Use “Add habit” to create one.</p> : (
+                    <ul>
+                      {list.map((h) => {
+                        const val = dailyRecords[selectedDate]?.statuses?.[h.id];
+                        if (h.type === 'numeric') return (
                           <li key={h.id} className="item">
-                            <div><p style={{ fontWeight: 600, fontSize: 14.5 }}>{h.name}</p><p className="mute xs">Target {h.target || 100} per day</p></div>
-                            <input type="number" min="0" inputMode="numeric" className="input count" value={val || ''} placeholder="0" aria-label={`${h.name} count`}
-                              disabled={lockedDay}
-                              onChange={(e) => updateHabitStatus(selectedDate, h.id, Number(e.target.value) || 0)} />
+                            <div style={{ flex: 1, minWidth: 0 }}><p style={{ fontWeight: 600, fontSize: 14.5 }}>{h.name}</p><p className="mute xs">Target {h.target || 100} per day</p></div>
+                            <input type="number" min="0" inputMode="numeric" className="input count" value={val || ''} placeholder="0" aria-label={`${h.name} count`} disabled={lockedDay} onChange={(e) => updateHabitStatus(selectedDate, h.id, Number(e.target.value) || 0)} />
+                            <button type="button" className="ghost" style={{ color: 'var(--pink)', padding: '7px 9px', flexShrink: 0 }} aria-label={`Remove ${h.name}`} onClick={() => deleteHabit(h)}>Remove</button>
                           </li>
                         );
-                      }
-                      const status = getStatus(selectedDate, h.id);
-                      return (
-                        <li key={h.id} className={`habit ${status === 'done' ? 'done' : ''} ${lockedDay ? 'locked' : ''}`}
-                          onClick={() => !lockedDay && cycleHabit(selectedDate, h.id)}>
-                          <StateButton status={status} disabled={lockedDay} onClick={(e) => { e.stopPropagation(); cycleHabit(selectedDate, h.id); }} />
-                          <span className="name">{h.name}</span>
-                          {status === 'missed' && <span className="pink xs">Missed</span>}
-                        </li>
-                      );
-                    })}
-                  </ul>
+                        const status = getStatus(selectedDate, h.id);
+                        return (
+                          <li key={h.id} className={`habit ${status === 'done' ? 'done' : ''} ${lockedDay ? 'locked' : ''}`} onClick={() => !lockedDay && cycleHabit(selectedDate, h.id)}>
+                            <StateButton status={status} disabled={lockedDay} onClick={(e) => { e.stopPropagation(); cycleHabit(selectedDate, h.id); }} />
+                            <span className="name">{h.name}</span>
+                            {status === 'missed' && <span className="pink xs">Missed</span>}
+                            <button type="button" className="ghost" style={{ color: 'var(--pink)', padding: '7px 9px', flexShrink: 0 }} aria-label={`Remove ${h.name}`} onClick={(e) => { e.stopPropagation(); deleteHabit(h); }}>Remove</button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
                 </section>
               );
             })}
@@ -696,6 +877,80 @@ export default function App() {
                 </>
               )}
             </section>
+          </div>
+        )}
+
+        {activeTab === 'islamic' && (
+          <div className="stack rise">
+            <PageTitle>Islamic</PageTitle>
+            <div className="row g8" style={{ padding: 5, borderRadius: 18, background: 'rgba(233,185,73,.08)', border: '1px solid rgba(233,185,73,.2)' }}>
+              <button className={`ghost full ${islamicSection === 'prayer' ? 'on' : ''}`} style={islamicSection === 'prayer' ? { background: 'linear-gradient(135deg,#ffe58a,#ffc533)', color: '#0b2e27' } : {}} onClick={() => setIslamicSection('prayer')}><Sunrise size={15} />Prayer</button>
+              <button className={`ghost full ${islamicSection === 'surah' ? 'on' : ''}`} style={islamicSection === 'surah' ? { background: 'linear-gradient(135deg,#ffe58a,#ffc533)', color: '#0b2e27' } : {}} onClick={() => setIslamicSection('surah')}><BookOpen size={15} />Surah</button>
+            </div>
+
+            {islamicSection === 'prayer' && (
+              <div className="stack">
+                <form onSubmit={savePrayerCity} className="card form">
+                  <h3 className="t">Prayer location</h3>
+                  <p className="mute xs">Enter your city to fetch local prayer times. The default is Dadri; change it if needed.</p>
+                  <div className="row g8">
+                    <input className="input grow" value={prayerCityDraft} onChange={(e) => setPrayerCityDraft(e.target.value)} placeholder="City, e.g. Noida" aria-label="Prayer city" required />
+                    <button type="submit" className="btn">Save</button>
+                  </div>
+                  {prayerLoading && <p className="mute xs">Fetching prayer times…</p>}
+                  {prayerError && <p className="pink xs">{prayerError}</p>}
+                </form>
+
+                <section className="card">
+                  <div className="row between" style={{ marginBottom: 8 }}><h3 className="t">Today’s prayer times</h3><span className="sun xs">{prayerCity}, India</span></div>
+                  <p className="mute xs" style={{ marginBottom: 12 }}>Mark each prayer after its time. If you do not mark it before the next prayer time (or sunrise for Fajr), it changes to Missed automatically.</p>
+                  {!prayerSchedule && !prayerLoading ? <p className="mute sm">Prayer times will appear here after the city is set.</p> : null}
+                  {prayerRows.map((prayer) => (
+                    <div className="item" key={prayer.id} style={{ borderTop: '1px solid rgba(233,185,73,.14)' }}>
+                      <div className="grow">
+                        <p style={{ fontWeight: 700 }}>{prayer.name}</p>
+                        <p className="mute xs">{prayer.id === 'tahajjud' ? 'Night prayer · after Isha and before Fajr' : `Starts ${displayPrayerTime(prayer.time)}`} · Deadline: {prayer.deadlineLabel}</p>
+                      </div>
+                      <div className="row g8">
+                        {prayer.status === 'done' ? <span className="sun xs">Done ✓</span> : prayer.status === 'missed' ? <span className="pink xs">Missed</span> : prayer.available ? <button className="ghost" onClick={() => markPrayerDone(prayer.id)}>Mark done</button> : <span className="mute xs">Upcoming</span>}
+                      </div>
+                    </div>
+                  ))}
+                  <p className="mute xs" style={{ marginTop: 12 }}>Calculation: Karachi method (1), Hanafi Asr. Timings may differ from your local mosque; follow your mosque’s timetable if it differs.</p>
+                </section>
+              </div>
+            )}
+
+            {islamicSection === 'surah' && (
+              <div className="stack">
+                <section className="card">
+                  <h3 className="t">This week’s recitation cycle</h3>
+                  <p className="serif sun" style={{ fontSize: 25, marginTop: 8 }}>Wednesday 8 PM → Wednesday 8 PM</p>
+                  <p className="mute xs" style={{ marginTop: 8 }}>{formatCycleDateTime(currentSurahCycle.start)} to {formatCycleDateTime(currentSurahCycle.end)}</p>
+                  <p className="mute xs" style={{ marginTop: 10 }}>Each cycle is saved separately. Your previous weeks’ counts will not be erased.</p>
+                </section>
+                <form onSubmit={handleAddSurah} className="card form">
+                  <h3 className="t">Add a Surah</h3>
+                  <input className="input" value={newSurahName} onChange={(e) => setNewSurahName(e.target.value)} placeholder="e.g. Surah Al-Kahf" aria-label="Surah name" required />
+                  <button type="submit" className="btn"><Plus size={16} />Add Surah</button>
+                </form>
+                <section className="card">
+                  <div className="row between" style={{ marginBottom: 8 }}><h3 className="t">Your recitation counts</h3><span className="sun xs">{currentSurahs.reduce((sum, s) => sum + Number(s.total || 0), 0)} total</span></div>
+                  {currentSurahs.length === 0 ? <p className="mute sm" style={{ padding: '14px 4px' }}>No Surahs added yet. Add a Surah above to start counting.</p> : currentSurahs.map((surah) => (
+                    <div className="surah-row" key={surah.id}>
+                      <div className="grow"><p style={{ fontWeight: 700 }}>{surah.name}</p><p className="mute xs">Today: {Number(surah.dailyCounts?.[getLocalDateKey(clockNow)] || 0)} · This cycle: {Number(surah.total || 0)}</p><p className="mute xs" style={{ marginTop: 4 }}>Daily log: {Object.entries(surah.dailyCounts || {}).sort(([a], [b]) => a.localeCompare(b)).map(([day, count]) => `${day}: ${count}`).join(' · ') || 'No recitations counted yet'}</p></div>
+                      <button type="button" className="surah-action" aria-label={`Decrease ${surah.name} count`} onClick={() => changeSurahCount(surah.id, -1)}>−</button><span className="surah-count">{Number(surah.total || 0)}</span><button type="button" className="surah-action" aria-label={`Increase ${surah.name} count`} onClick={() => changeSurahCount(surah.id, 1)}>+</button>
+                    </div>
+                  ))}
+                </section>
+                <section className="card">
+                  <h3 className="t" style={{ marginBottom: 10 }}>Previous weeks</h3>
+                  {Object.values(surahCycles).filter((c) => c.cycleId !== currentSurahCycle.id && Array.isArray(c.surahs) && c.surahs.length).sort((a, b) => (b.startAt || 0) - (a.startAt || 0)).length === 0 ? <p className="mute sm">Your completed weekly counts will appear here after your first cycle.</p> : Object.values(surahCycles).filter((c) => c.cycleId !== currentSurahCycle.id && Array.isArray(c.surahs) && c.surahs.length).sort((a, b) => (b.startAt || 0) - (a.startAt || 0)).map((cycle) => (
+                    <div key={cycle.cycleId} style={{ padding: '12px 2px', borderTop: '1px solid rgba(233,185,73,.14)' }}><p style={{ fontWeight: 700 }}>{formatCycleDateTime(new Date(cycle.startAt))} – {formatCycleDateTime(new Date(cycle.endAt))}</p>{cycle.surahs.map((surah) => <div key={surah.id} style={{ marginTop: 7 }}><p className="mute xs">{surah.name}: <span className="sun">{Number(surah.total || 0)}</span></p><p className="mute xs">Daily: {Object.entries(surah.dailyCounts || {}).sort(([a], [b]) => a.localeCompare(b)).map(([day, count]) => `${day}: ${count}`).join(' · ') || 'No daily details'}</p></div>)}</div>
+                  ))}
+                </section>
+              </div>
+            )}
           </div>
         )}
 
@@ -755,43 +1010,7 @@ export default function App() {
           </div>
         )}
 
-        {activeTab === 'manage' && (
-          <div className="stack rise">
-            <PageTitle>Your habits</PageTitle>
-            <form onSubmit={handleAddHabit} className="card form">
-              <h3 className="t">Add a habit</h3>
-              <input className="input" required placeholder="e.g. Read 10 pages" aria-label="Habit name" value={newHabitName} onChange={(e) => setNewHabitName(e.target.value)} />
-              <div className="two">
-                <select className="input" aria-label="Category" value={newHabitCategory} onChange={(e) => setNewHabitCategory(e.target.value)}>
-                  {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-                <select className="input" aria-label="Type" value={newHabitType} onChange={(e) => setNewHabitType(e.target.value)}>
-                  <option value="boolean">Done / missed</option>
-                  <option value="numeric">Count</option>
-                </select>
-              </div>
-              {newHabitType === 'numeric' && (<input className="input" type="number" min="1" aria-label="Daily target" placeholder="Daily target" value={newHabitTarget} onChange={(e) => setNewHabitTarget(e.target.value)} />)}
-              <button type="submit" className="btn"><Plus size={16} />Add habit</button>
-            </form>
 
-            <section className="card" style={{ padding: '14px 18px' }}>
-              <ul>
-                {activeHabits.map((h) => (
-                  <li key={h.id} className="item">
-                    <div className="grow">
-                      <p style={{ fontWeight: 600, fontSize: 14.5 }}>{h.name}</p>
-                      <p className="mute xs">{h.category}{h.type === 'numeric' ? ` · target ${h.target}` : ''}</p>
-                    </div>
-                    <div className="row g8">
-                      <button className="ghost icon" aria-label={`Archive ${h.name}`} onClick={() => archiveHabit(h)}><Archive size={16} /></button>
-                      <button className="ghost icon danger" aria-label={`Delete ${h.name}`} onClick={() => deleteHabit(h)}><Trash2 size={16} /></button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          </div>
-        )}
       </div>
 
       <nav aria-label="Main" className="nav">
