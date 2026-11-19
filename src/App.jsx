@@ -6,8 +6,8 @@ import {
 } from 'firebase/auth';
 import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from 'firebase/firestore';
 import {
-  Sunrise, ListChecks, CalendarDays, BarChart3, BookOpen, Check, X,
-  ChevronLeft, ChevronRight, Flame, LogOut, Plus, AlertCircle, Cloud, Lock
+  Landmark, Sunrise, ListChecks, CalendarDays, BarChart3, BookOpen, Check, X,
+  ChevronLeft, ChevronRight, LogOut, Plus, AlertCircle, Cloud, Lock
 } from 'lucide-react';
 
 // ============================================================================
@@ -41,7 +41,7 @@ const QUOTES = [
 ];
 
 const TABS = [
-  { id: 'today', label: 'Today', icon: Sunrise },
+  { id: 'today', label: 'Home', icon: Landmark },
   { id: 'tracker', label: 'Track', icon: ListChecks },
   { id: 'calendar', label: 'Month', icon: CalendarDays },
   { id: 'stats', label: 'Stats', icon: BarChart3 },
@@ -86,43 +86,54 @@ const formatDisplayDate = (k) =>
   parseDateKey(k).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 const getQuoteForDate = (k) =>
   QUOTES[k.split('-').reduce((a, v) => a + parseInt(v, 10), 0) % QUOTES.length];
-const greeting = () => {
-  const h = new Date().getHours();
-  return h < 5 ? 'اَلسَّلَامُ عَلَيْكُمْ' : h < 12 ? 'اَلسَّلَامُ عَلَيْكُمْ' : h < 17 ? 'اَلسَّلَامُ عَلَيْكُمْ' : 'اَلسَّلَامُ عَلَيْكُمْ';
-};
 
-// Eight-pointed star (Khatam): two overlapping squares, used as clip shape, marker and ornament
+// Eight-pointed star (Khatam): two overlapping squares, used as a clip shape for bullets and ornaments
 const OCTAGRAM = [[50, 0], [64.64, 14.64], [85.36, 14.64], [85.36, 35.36], [100, 50], [85.36, 64.64], [85.36, 85.36], [64.64, 85.36],
   [50, 100], [35.36, 85.36], [14.64, 85.36], [14.64, 64.64], [0, 50], [14.64, 35.36], [14.64, 14.64], [35.36, 14.64]];
 const STAR_CLIP = `polygon(${OCTAGRAM.map(([a, b]) => `${a}% ${b}%`).join(',')})`;
-const starPoints = (scale) => OCTAGRAM.map(([a, b]) => `${((a - 50) * scale).toFixed(2)},${((b - 50) * scale).toFixed(2)}`).join(' ');
+
+// Pointed (mihrab) arch as a clip-path: straight sides, then two arcs meeting at a point at the top
+const ARCH_CLIP = (() => {
+  const springY = 38, rx = 100, ry = 43.8, steps = 14;
+  const left = [];
+  for (let i = 0; i <= steps; i++) {
+    const phi = ((180 - (60 * i) / steps) * Math.PI) / 180;
+    left.push([100 + rx * Math.cos(phi), springY - ry * Math.sin(phi)]);
+  }
+  const right = left.slice(0, -1).reverse().map(([x, y]) => [100 - x, y]);
+  const pts = [[0, 100], ...left, ...right, [100, 100]];
+  return `polygon(${pts.map(([x, y]) => `${x.toFixed(2)}% ${y.toFixed(2)}%`).join(',')})`;
+})();
 
 // ============================================================================
 // STYLES: plain CSS only (no Tailwind needed)
-// Palette: emerald ink #04211c · mosque green #0a3a31 · gold #e9b949 · bright gold #ffd86b · parchment #f7ecd0
+// Iznik-tile theme: midnight lapis blue · turquoise · gold · ivory
 // ============================================================================
 const STYLES = `
-@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Manrope:wght@400;500;600;700;800&display=swap');
-html,body,#root{margin:0;min-height:100%;background:#04211c}
+@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Manrope:wght@400;500;600;700;800&family=Reem+Kufi:wght@500;700&display=swap');
+html,body,#root{margin:0;min-height:100%;background:#061a33}
 .hx,.hx *{box-sizing:border-box}
 .hx{
   --star:${STAR_CLIP};
-  --tile:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Cg fill='none' stroke='%23e9b949' stroke-opacity='.14' stroke-width='1'%3E%3Crect x='16' y='16' width='40' height='40'/%3E%3Crect x='16' y='16' width='40' height='40' transform='rotate(45 36 36)'/%3E%3Ccircle cx='36' cy='36' r='7'/%3E%3Cpath d='M0 0L16 16M72 0L56 16M0 72L16 56M72 72L56 56'/%3E%3C/g%3E%3C/svg%3E");
-  --tile-dark:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Cg fill='none' stroke='%230b2e27' stroke-opacity='.2' stroke-width='1'%3E%3Crect x='16' y='16' width='40' height='40'/%3E%3Crect x='16' y='16' width='40' height='40' transform='rotate(45 36 36)'/%3E%3Ccircle cx='36' cy='36' r='7'/%3E%3Cpath d='M0 0L16 16M72 0L56 16M0 72L16 56M72 72L56 56'/%3E%3C/g%3E%3C/svg%3E");
-  font-family:'Manrope',system-ui,sans-serif;color:#f7ecd0;min-height:100vh;font-size:15px;line-height:1.45;
-  background-color:#04211c;
+  --arch:${ARCH_CLIP};
+  --bg:#061a33;--text:#f6efdc;--mute:#9fb4cc;--hi:#ffd86b;--pink:#f29a82;
+  --rgb:233,185,73;--turq-rgb:47,196,191;--ink:#08213f;
+  --k1:#ffe58a;--k2:#ffc533;--k3:#e9a62a;
+  --tile:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cg fill='none' stroke='%232fc4bf' stroke-opacity='.15' stroke-width='1'%3E%3Cpath d='M40 6L48 24L66 14L56 32L74 40L56 48L66 66L48 56L40 74L32 56L14 66L24 48L6 40L24 32L14 14L32 24Z'/%3E%3Ccircle cx='40' cy='40' r='9'/%3E%3Cpath d='M0 0L12 12M80 0L68 12M0 80L12 68M80 80L68 68'/%3E%3C/g%3E%3Cg fill='%23e9b949' fill-opacity='.22'%3E%3Ccircle cx='0' cy='0' r='2'/%3E%3Ccircle cx='80' cy='0' r='2'/%3E%3Ccircle cx='0' cy='80' r='2'/%3E%3Ccircle cx='80' cy='80' r='2'/%3E%3C/g%3E%3C/svg%3E");
+  font-family:'Manrope',system-ui,sans-serif;color:var(--text);min-height:100vh;font-size:15px;line-height:1.45;
+  background-color:var(--bg);
   background-image:
-    radial-gradient(900px 520px at 50% -12%,rgba(255,206,70,.26),transparent 70%),
-    radial-gradient(700px 480px at 105% 10%,rgba(28,122,104,.35),transparent 70%),
-    radial-gradient(600px 420px at -10% 60%,rgba(255,200,60,.08),transparent 70%),
+    radial-gradient(900px 520px at 50% -12%,rgba(255,200,70,.20),transparent 70%),
+    radial-gradient(760px 520px at 108% 8%,rgba(var(--turq-rgb),.26),transparent 70%),
+    radial-gradient(640px 460px at -12% 62%,rgba(var(--turq-rgb),.14),transparent 70%),
     var(--tile);
   background-attachment:fixed}
 .hx h1,.hx h2,.hx h3,.hx p,.hx blockquote,.hx ul{margin:0;padding:0}
 .hx ul{list-style:none}
-.hx button{font-family:inherit;color:#f7ecd0;background:none;border:0;cursor:pointer;padding:4}
+.hx button{font-family:inherit;color:var(--text);background:none;border:0;cursor:pointer;padding:4}
 .hx input,.hx select,.hx textarea{font-family:inherit}
 .serif{font-family:'Amiri','Times New Roman',serif;font-weight:400;letter-spacing:0}
-.mute{color:#9db8ac}.sun{color:#ffd86b}.coral{color:#ff9a4d}.pink{color:#f09a80}
+.mute{color:var(--mute)}.sun{color:var(--hi)}.coral{color:#f08a2c}.pink{color:var(--pink)}
 .xs{font-size:12px}.sm{font-size:13.5px}
 .row{display:flex;align-items:center}.between{justify-content:space-between}.end{align-items:flex-end}
 .g8{gap:8px}.g12{gap:12px}.g16{gap:16px}
@@ -131,116 +142,120 @@ html,body,#root{margin:0;min-height:100%;background:#04211c}
 
 .wrap{max-width:720px;margin:0 auto;padding:28px 20px 140px}
 .top{margin-bottom:24px}
-.card{background:linear-gradient(180deg,rgba(11,62,52,.88),rgba(6,38,32,.92));border:1px solid rgba(233,185,73,.28);border-radius:22px;padding:24px;box-shadow:0 20px 50px -25px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,226,140,.10)}
-.card h3.t{font-size:14px;font-weight:700;color:#ffd86b;margin-bottom:6px;display:flex;align-items:center;gap:8px}
-.card h3.t::before{content:"";width:11px;height:11px;flex-shrink:0;background:linear-gradient(135deg,#ffe58a,#e9b949);clip-path:var(--star)}
-.page-title{font-size:40px;line-height:1.1;background:linear-gradient(135deg,#fff0b0,#ffd04a 55%,#e9a62a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.card{position:relative;background:linear-gradient(180deg,rgba(14,52,98,.86),rgba(7,29,60,.92));border:1px solid rgba(var(--rgb),.28);border-radius:20px;padding:24px;box-shadow:0 20px 50px -25px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.08)}
+.card::after{content:"";position:absolute;left:22px;right:22px;top:-1px;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(var(--turq-rgb),.85),transparent);pointer-events:none}
+.card h3.t{font-size:14px;font-weight:700;color:var(--hi);margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.card h3.t::before{content:"";width:11px;height:11px;flex-shrink:0;background:linear-gradient(135deg,var(--k1),var(--k3));clip-path:var(--star)}
+.hx .page-title{font-family:'Reem Kufi','Amiri',serif;font-weight:700;letter-spacing:.01em;font-size:34px;line-height:1.15;background:linear-gradient(135deg,var(--k1),var(--k2) 55%,var(--k3));-webkit-background-clip:text;background-clip:text;color:transparent}
 
 /* Ornamental divider: line · star · line */
 .orn{display:flex;align-items:center;gap:10px;margin-top:8px;max-width:260px}
-.orn i{flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(233,185,73,.7))}
-.orn i:last-child{background:linear-gradient(270deg,transparent,rgba(233,185,73,.7))}
-.orn b{width:12px;height:12px;flex-shrink:0;background:linear-gradient(135deg,#ffe58a,#e9b949);clip-path:var(--star)}
+.orn i{flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(var(--turq-rgb),.8))}
+.orn i:last-child{background:linear-gradient(270deg,transparent,rgba(var(--turq-rgb),.8))}
+.orn b{width:12px;height:12px;flex-shrink:0;background:linear-gradient(135deg,var(--k1),var(--k3));clip-path:var(--star)}
 
-.bismillah{font-family:'Amiri',serif;font-size:30px;line-height:1.5;text-align:center;background:linear-gradient(135deg,#fff0b0,#ffd04a 55%,#e9a62a);-webkit-background-clip:text;background-clip:text;color:transparent}
-
-/* Hero: a mihrab arch with a double gold frame and a lattice behind the text */
-.hero{position:relative;text-align:center;padding:68px 24px 30px;color:#0b2e27;border:0;border-radius:200px 200px 22px 22px;margin-bottom:8px;
-  background:linear-gradient(160deg,#fff0a0 0%,#ffd04a 45%,#e9a62a 100%);
-  box-shadow:0 0 0 3px #04211c,0 0 0 5px #e9b949,0 0 0 9px #04211c,0 0 0 10px rgba(233,185,73,.55),0 34px 70px -26px rgba(255,190,40,.55),inset 0 1px 0 rgba(255,255,255,.55)}
-.hero::before{content:"";position:absolute;inset:0;border-radius:inherit;background-image:var(--tile-dark);opacity:.85;pointer-events:none}
-.hero>*{position:relative}
-.hero .mute{color:rgba(11,46,39,.75)}
-.hero .num{font-size:70px;line-height:1;margin-top:-62px;color:#0b2e27}
-.hero .num small{font-size:26px;color:rgba(11,46,39,.65)}
-.hero .btn{margin-top:24px;background:#0b2e27!important;color:#ffd86b!important;box-shadow:0 12px 26px -10px rgba(4,33,28,.8)}
-.hero .btn:hover{box-shadow:0 16px 30px -10px rgba(4,33,28,.9)}
-.arc{display:block;width:100%;max-width:380px;margin:10px auto 0}
+/* Mihrab: a pointed-arch frame (gold rim, lapis niche, lattice inside) */
+.mihrab-wrap{width:100%;max-width:420px;margin:0 auto;filter:drop-shadow(0 26px 40px rgba(255,190,50,.22))}
+.mihrab{clip-path:var(--arch);background:linear-gradient(170deg,var(--k1),var(--k2) 45%,var(--k3));padding:6px}
+.mihrab-in{position:relative;clip-path:var(--arch);display:flex;flex-direction:column;align-items:center;text-align:center;overflow:hidden;
+  background:radial-gradient(420px 300px at 50% 6%,rgba(255,200,70,.20),transparent 70%),var(--tile),linear-gradient(180deg,#0f3b70 0%,#071f40 100%)}
+.welcome-in{min-height:620px;padding:128px 22px 0}
+.apex-star{position:absolute;top:58px;left:50%;width:26px;height:26px;transform:translateX(-50%);background:linear-gradient(135deg,var(--k1),var(--k3));clip-path:var(--star)}
+.bismillah{font-family:'Amiri',serif;font-size:clamp(28px,7.4vw,38px);line-height:1.5;background:linear-gradient(135deg,var(--k1),var(--k2) 55%,var(--k3));-webkit-background-clip:text;background-clip:text;color:transparent}
+.salam{font-family:'Amiri',serif;font-size:32px;line-height:1.5;color:var(--text)}
+.salam-en{font-size:11.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--mute);margin-top:2px}
+.fullname{font-size:clamp(32px,9vw,44px);line-height:1.15;margin:14px 0 24px;background:linear-gradient(135deg,var(--k1),var(--k2) 55%,var(--k3));-webkit-background-clip:text;background-clip:text;color:transparent;overflow-wrap:anywhere}
+.skyline{display:block;width:calc(100% + 44px);margin:auto -22px 0;padding-top:26px}
 
 .strip{display:grid;grid-template-columns:repeat(3,1fr);padding:22px 8px;text-align:center}
-.strip>div+div{border-left:1px solid rgba(233,185,73,.22)}
-.strip .v{font-size:32px;display:flex;align-items:center;justify-content:center;gap:6px;background:linear-gradient(135deg,#fff0b0,#ffd04a);-webkit-background-clip:text;background-clip:text;color:transparent}
-.strip .v svg{color:#ff9a4d}
-.strip .l{font-size:12px;color:#9db8ac;margin-top:4px}
-.bar{height:10px;border-radius:999px;background:rgba(233,185,73,.12);overflow:hidden;margin-top:16px}
-.bar>div{height:100%;border-radius:999px;background:linear-gradient(90deg,#ffe58a,#ffc533,#e9a62a);transition:width .6s ease;box-shadow:0 0 14px rgba(255,197,51,.5)}
-.quote{padding:10px 6px}.quote p{font-size:24px;line-height:1.4;font-style:italic}.quote footer{font-size:12px;color:#ffd86b;margin-top:12px}
+.strip>div+div{border-left:1px solid rgba(var(--rgb),.22)}
+.strip .v{font-size:32px;display:flex;align-items:center;justify-content:center;gap:6px;background:linear-gradient(135deg,var(--k1),var(--k2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.strip .l{font-size:12px;color:var(--mute);margin-top:4px}
+.bar{height:10px;border-radius:999px;background:rgba(var(--rgb),.14);overflow:hidden;margin-top:16px}
+.bar>div{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--k1),var(--k2),var(--k3));transition:width .6s ease;box-shadow:0 0 14px rgba(255,197,51,.45)}
+.quote{padding:10px 6px}.quote p{font-size:24px;line-height:1.4;font-style:italic}.quote footer{font-size:12px;color:var(--hi);margin-top:12px}
 
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#ffe58a,#ffc533 55%,#e9a62a)!important;color:#0b2e27!important;font-weight:800;font-size:14px;border-radius:999px;padding:14px 26px;box-shadow:0 10px 28px -8px rgba(255,190,40,.55);transition:transform .15s,box-shadow .15s}
-.btn:hover{transform:translateY(-2px);box-shadow:0 14px 32px -8px rgba(255,190,40,.75)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,var(--k1),var(--k2) 55%,var(--k3))!important;color:var(--ink)!important;font-weight:800;font-size:14px;border-radius:999px;padding:14px 26px;box-shadow:0 10px 28px -8px rgba(255,190,40,.5);transition:transform .15s,box-shadow .15s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 14px 32px -8px rgba(255,190,40,.7)}
 .btn:active{transform:translateY(0)}.btn:disabled{opacity:.5;transform:none}
 .btn.full{width:100%}
-.ghost{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:rgba(233,185,73,.08)!important;border:1px solid rgba(233,185,73,.25)!important;border-radius:999px;padding:10px 16px;font-size:13px;font-weight:600;transition:background .15s,border-color .15s}
-.ghost:hover{background:rgba(233,185,73,.16)!important;border-color:rgba(255,216,107,.6)!important}
+.ghost{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:rgba(var(--rgb),.09)!important;border:1px solid rgba(var(--rgb),.28)!important;border-radius:999px;padding:10px 16px;font-size:13px;font-weight:600;transition:background .15s,border-color .15s}
+.ghost:hover{background:rgba(var(--rgb),.18)!important;border-color:rgba(255,216,107,.65)!important}
+.ghost.on{background:linear-gradient(135deg,var(--k1),var(--k2))!important;color:var(--ink)!important;border-color:transparent!important}
 .ghost.full{width:100%;padding:13px}
 .ghost.icon{width:40px;height:40px;padding:0}
-.ghost.danger:hover{background:rgba(240,120,90,.18)!important;border-color:rgba(240,120,90,.55)!important;color:#f5a08a}
-.link{font-size:13px;color:#9db8ac!important}.link:hover{color:#ffd86b!important}
+.ghost.danger:hover{background:rgba(242,154,130,.18)!important;border-color:rgba(242,154,130,.55)!important;color:var(--pink)}
+.link{font-size:13px;color:var(--mute)!important}.link:hover{color:var(--hi)!important}
+.seg{padding:5px;border-radius:18px;background:rgba(var(--rgb),.08);border:1px solid rgba(var(--rgb),.2)}
 
-.input{display:block;width:100%;background:rgba(3,24,20,.7);border:1px solid rgba(233,185,73,.25);border-radius:14px;padding:13px 16px;color:#f7ecd0;font-size:14.5px;outline:none;transition:border-color .15s,box-shadow .15s}
-.input::placeholder{color:#6f8f83}
-.input:focus{border-color:#ffd86b;box-shadow:0 0 0 4px rgba(255,216,107,.14)}
+.input{display:block;width:100%;background:rgba(4,17,38,.72);border:1px solid rgba(var(--rgb),.28);border-radius:14px;padding:13px 16px;color:var(--text);font-size:14.5px;outline:none;transition:border-color .15s,box-shadow .15s}
+.input::placeholder{color:var(--mute);opacity:.65}
+.input:focus{border-color:var(--hi);box-shadow:0 0 0 4px rgba(var(--rgb),.16)}
 .input:disabled,.input[readonly]{opacity:.6;cursor:not-allowed}
 select.input{appearance:none;-webkit-appearance:none;cursor:pointer;padding-right:40px;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%239db8ac' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%239fb4cc' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 16px center}
-select.input option{background:#082c25;color:#f7ecd0}
+select.input option{background:#0a2748;color:var(--text)}
 textarea.input{resize:none;line-height:1.5}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .count{width:96px;text-align:center;font-weight:700}
-.date{background:transparent;border:0;color:#f7ecd0;font-size:13px;font-weight:600;cursor:pointer;color-scheme:dark;width:122px;outline:none}
-.err{display:flex;gap:10px;margin-top:20px;padding:12px 14px;border-radius:14px;background:rgba(240,120,90,.10);border:1px solid rgba(240,120,90,.35);color:#f5a08a;font-size:12.5px;text-align:left}
-.lock-note{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:14px;background:rgba(233,185,73,.09);border:1px solid rgba(233,185,73,.3);color:#ffd86b;font-size:12.5px}
+.date{background:transparent;border:0;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;color-scheme:dark;width:122px;outline:none}
+.err{display:flex;gap:10px;margin-top:20px;padding:12px 14px;border-radius:14px;background:rgba(242,154,130,.10);border:1px solid rgba(242,154,130,.38);color:var(--pink);font-size:12.5px;text-align:left}
+.lock-note{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:14px;background:rgba(var(--rgb),.1);border:1px solid rgba(var(--rgb),.32);color:var(--hi);font-size:12.5px}
 
 .habit{display:flex;align-items:center;gap:16px;padding:14px 6px;cursor:pointer;border-radius:14px;transition:background .15s}
-.habit+.habit,.item+.item{border-top:1px solid rgba(233,185,73,.14)}
-.habit:hover{background:rgba(233,185,73,.06)}
+.habit+.habit,.item+.item{border-top:1px solid rgba(var(--rgb),.16)}
+.habit:hover{background:rgba(var(--rgb),.07)}
 .habit .name{flex:1;font-weight:600;font-size:14.5px}
-.habit.done .name{color:#9db8ac;text-decoration:line-through;text-decoration-color:rgba(255,216,107,.7)}
+.habit.done .name{color:var(--mute);text-decoration:line-through;text-decoration-color:rgba(var(--rgb),.8)}
 .habit.locked{cursor:default}
 .habit.locked:hover{background:transparent}
-.circle{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .15s}
+.circle{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1.5px solid transparent;transition:transform .15s}
+.circle.empty{background:transparent;border-color:rgba(var(--turq-rgb),.55);color:transparent}
+.circle.done{background:linear-gradient(135deg,var(--k1),var(--k3));border-color:transparent;color:var(--ink);clip-path:var(--star)}
+.circle.missed{background:rgba(242,154,130,.18);border-color:rgba(242,154,130,.65);color:var(--pink)}
 .circle:hover{transform:scale(1.08)}
 .circle:disabled{cursor:default}
 .circle:disabled:hover{transform:none}
 .item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 6px}
 
-.cal-head{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;text-align:center;font-size:11px;color:#9db8ac;margin-bottom:8px}
+.cal-head{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;text-align:center;font-size:11px;color:var(--mute);margin-bottom:8px}
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
 .day{aspect-ratio:1;border-radius:14px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;transition:transform .15s}
 .day:hover{transform:scale(1.07)}
 .bars{display:flex;align-items:flex-end;gap:6px;height:170px}
 .bars>div{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px}
 .bars i{display:block;width:100%;border-radius:999px 999px 4px 4px;transition:height .5s}
-.bars span{font-size:10px;color:#9db8ac}
+.bars span{font-size:10px;color:var(--mute)}
 
 .notes li{display:flex;align-items:center;gap:10px;padding:4px 0}
-.notes .dot{width:11px;height:11px;flex-shrink:0;background:linear-gradient(135deg,#ffe58a,#e9b949);clip-path:var(--star)}
-.note-input{flex:1;min-width:0;background:transparent;border:0;border-bottom:1px solid rgba(233,185,73,.22);color:#f7ecd0;font-size:14.5px;padding:9px 2px;outline:none;transition:border-color .15s}
-.note-input::placeholder{color:#6f8f83}
-.note-input:focus{border-bottom-color:#ffd86b}
+.notes .dot{width:11px;height:11px;flex-shrink:0;background:linear-gradient(135deg,var(--k1),var(--k3));clip-path:var(--star)}
+.note-input{flex:1;min-width:0;background:transparent;border:0;border-bottom:1px solid rgba(var(--turq-rgb),.3);color:var(--text);font-size:14.5px;padding:9px 2px;outline:none;transition:border-color .15s}
+.note-input::placeholder{color:var(--mute);opacity:.65}
+.note-input:focus{border-bottom-color:var(--hi)}
 .note-text{flex:1;padding:8px 2px;overflow-wrap:anywhere}
 .ghost.icon.sm{width:30px;height:30px}
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:60;padding:11px 20px;border-radius:999px;font-size:13px;font-weight:600}
-.nav{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:50;display:flex;gap:4px;padding:6px;border-radius:26px;border:1px solid rgba(233,185,73,.35);background:rgba(4,33,28,.9);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 20px 40px -10px rgba(0,0,0,.8);margin-bottom:env(safe-area-inset-bottom,0px)}
-.nav button{display:flex;align-items:center;gap:8px;border-radius:18px;padding:11px 15px;font-size:13px;font-weight:700;color:#9db8ac;transition:all .2s}
-.nav button:hover{color:#f7ecd0}
-.nav button.on{border-radius:999px 999px 16px 16px;background:linear-gradient(160deg,#ffe58a,#ffc533 55%,#e9a62a);color:#0b2e27;box-shadow:0 8px 20px -6px rgba(255,190,40,.65)}
+.nav{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:50;display:flex;gap:4px;padding:6px;border-radius:26px;border:1px solid rgba(var(--rgb),.38);background:rgba(6,26,51,.92);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 20px 40px -10px rgba(0,0,0,.85);margin-bottom:env(safe-area-inset-bottom,0px)}
+.nav button{display:flex;align-items:center;gap:8px;border-radius:18px;padding:11px 15px;font-size:13px;font-weight:700;color:var(--mute);transition:all .2s}
+.nav button:hover{color:var(--text)}
+.nav button.on{border-radius:999px 999px 16px 16px;background:linear-gradient(160deg,var(--k1),var(--k2) 55%,var(--k3));color:var(--ink);box-shadow:0 8px 20px -6px rgba(255,190,40,.6)}
 
-.surah-row{display:flex;align-items:center;gap:10px;padding:14px 4px;border-top:1px solid rgba(233,185,73,.14)}
+.surah-row{display:flex;align-items:center;gap:10px;padding:14px 4px;border-top:1px solid rgba(var(--rgb),.16)}
 .surah-row:first-child{border-top:0}
-.surah-count{min-width:34px;text-align:center;font-size:20px;font-weight:800;color:#ffd86b}
-.surah-action{width:36px;height:36px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(233,185,73,.35)!important;background:rgba(233,185,73,.09)!important;color:#ffd86b!important;font-size:20px;font-weight:700}
-.surah-action:hover{background:rgba(233,185,73,.2)!important}
+.surah-count{min-width:34px;text-align:center;font-size:20px;font-weight:800;color:var(--hi)}
+.surah-action{width:36px;height:36px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(var(--rgb),.4)!important;background:rgba(var(--rgb),.1)!important;color:var(--hi)!important;font-size:20px;font-weight:700}
+.surah-action:hover{background:rgba(var(--rgb),.22)!important}
+
 .auth{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.auth .card{width:100%;max-width:420px;padding:70px 30px 34px;border-radius:200px 200px 22px 22px;text-align:center;
-  box-shadow:0 0 0 3px #04211c,0 0 0 5px #e9b949,0 0 0 9px #04211c,0 0 0 10px rgba(233,185,73,.55),0 30px 60px -25px rgba(0,0,0,.8)}
-.auth h1{background:linear-gradient(135deg,#fff0b0,#ffd04a 55%,#e9a62a);-webkit-background-clip:text;background-clip:text;color:transparent}
-.auth .orn{margin:16px auto 0}
+.auth .mihrab-wrap{margin:0 auto}
+.auth-in{align-items:stretch;padding:104px 30px 36px}
+.auth-in h1{background:linear-gradient(135deg,var(--k1),var(--k2) 55%,var(--k3));-webkit-background-clip:text;background-clip:text;color:transparent}
+.auth-in .orn{margin:14px auto 0}
 .rise{animation:rise .6s ease-out both}
 @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
-.hx button:focus-visible,.hx input:focus-visible,.hx select:focus-visible{outline:2px solid #ffd86b;outline-offset:2px}
-@media (max-width:480px){.page-title{font-size:34px}.hero{border-radius:170px 170px 22px 22px;padding-top:60px}.hero .num{font-size:58px}.nav button{padding:11px 12px}.two{grid-template-columns:1fr}.auth .card{border-radius:170px 170px 22px 22px}}
+.hx button:focus-visible,.hx input:focus-visible,.hx select:focus-visible{outline:2px solid var(--hi);outline-offset:2px}
+@media (max-width:480px){.hx .page-title{font-size:29px}.nav button{padding:11px 12px}.two{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){.rise{animation:none}*{transition:none!important}}
 `;
 
@@ -255,38 +270,54 @@ function PageTitle({ children }) {
   return (<div><h2 className="serif page-title">{children}</h2><Ornament /></div>);
 }
 
-function SunArc({ pct }) {
-  const p = Math.max(0, Math.min(100, pct)) / 100;
-  const cx = 130, cy = 130, r = 110;
-  const x = cx - r * Math.cos(Math.PI * p);
-  const y = cy - r * Math.sin(Math.PI * p);
-  const len = Math.PI * r;
-  const d = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`;
+// A mosque skyline: central dome, two side domes, two minarets with crescent finials
+function MosqueSkyline() {
+  const gold = { fill: 'url(#skyFill)' };
+  const dark = { fill: 'var(--ink)', opacity: 0.88 };
+  const fin = { fill: 'var(--k2)' };
   return (
-    <svg viewBox="0 0 260 150" className="arc" role="img" aria-label={`${pct}% of today's habits completed`}>
+    <svg viewBox="0 0 400 160" className="skyline" aria-hidden="true" focusable="false">
       <defs>
-        <linearGradient id="arcg" x1="0" x2="1"><stop offset="0" stopColor="#14665a" /><stop offset="1" stopColor="#0b2e27" /></linearGradient>
-        <radialGradient id="glow"><stop offset="0" stopColor="#fffbe6" stopOpacity="1" /><stop offset="1" stopColor="#fffbe6" stopOpacity="0" /></radialGradient>
+        <linearGradient id="skyFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" style={{ stopColor: 'var(--k1)' }} /><stop offset="1" style={{ stopColor: 'var(--k3)' }} />
+        </linearGradient>
+        <mask id="crescentCut" maskUnits="userSpaceOnUse" x="-12" y="-12" width="24" height="24">
+          <rect x="-12" y="-12" width="24" height="24" fill="#fff" />
+          <circle cx="4" cy="-2" r="6.5" fill="#000" />
+        </mask>
+        <g id="crescent"><circle r="8" mask="url(#crescentCut)" /></g>
       </defs>
-      <path d={d} fill="none" stroke="rgba(11,46,39,.18)" strokeWidth="14" strokeLinecap="round" />
-      <path d={d} fill="none" stroke="url(#arcg)" strokeWidth="14" strokeLinecap="round" strokeDasharray={len} strokeDashoffset={len * (1 - p)} style={{ transition: 'stroke-dashoffset .9s ease' }} />
-      <g transform={`translate(${x} ${y})`}>
-        <circle r="30" fill="url(#glow)" />
-        <polygon points={starPoints(0.36)} fill="#fffdf0" stroke="#0b2e27" strokeWidth="1.6" strokeLinejoin="round" />
+      <g style={gold} opacity=".96">
+        <rect x="38" y="62" width="14" height="98" style={gold} />
+        <rect x="33" y="70" width="24" height="5" rx="2" style={gold} />
+        <path d="M36 62 L45 30 L54 62 Z" style={gold} />
+        <rect x="348" y="62" width="14" height="98" style={gold} />
+        <rect x="343" y="70" width="24" height="5" rx="2" style={gold} />
+        <path d="M346 62 L355 30 L364 62 Z" style={gold} />
+        <path d="M92 130 C92 108 104 98 118 98 C132 98 144 108 144 130 Z" style={gold} />
+        <path d="M256 130 C256 108 268 98 282 98 C296 98 308 108 308 130 Z" style={gold} />
+        <rect x="150" y="110" width="100" height="50" style={gold} />
+        <path d="M142 112 C142 66 168 46 200 46 C232 46 258 66 258 112 Z" style={gold} />
+        <rect x="198" y="32" width="4" height="16" style={gold} />
+        <rect x="0" y="130" width="400" height="30" style={gold} />
       </g>
-      <line x1="10" x2="250" y1={cy + 8} y2={cy + 8} stroke="rgba(11,46,39,.25)" />
+      <use href="#crescent" x="45" y="22" style={fin} />
+      <use href="#crescent" x="355" y="22" style={fin} />
+      <use href="#crescent" x="200" y="23" style={fin} />
+      <path d="M193 160 V140 a7 7 0 0 1 14 0 V160 Z" style={dark} />
+      <path d="M168 134 v-12 a5 5 0 0 1 10 0 v12 z" style={dark} />
+      <path d="M222 134 v-12 a5 5 0 0 1 10 0 v12 z" style={dark} />
+      <path d="M110 150 v-10 a4 4 0 0 1 8 0 v10 z" style={dark} />
+      <path d="M282 150 v-10 a4 4 0 0 1 8 0 v10 z" style={dark} />
+      <rect x="43" y="92" width="4" height="12" rx="2" style={dark} />
+      <rect x="353" y="92" width="4" height="12" rx="2" style={dark} />
     </svg>
   );
 }
 
 function StateButton({ status, onClick, disabled }) {
-  const look = status === 'done'
-    ? { background: 'linear-gradient(135deg,#ffe58a,#e9a62a)', borderColor: 'transparent', color: '#0b2e27', clipPath: STAR_CLIP }
-    : status === 'missed'
-    ? { background: 'rgba(240,120,90,.18)', borderColor: 'rgba(240,120,90,.6)', color: '#f5a08a' }
-    : { background: 'transparent', borderColor: 'rgba(233,185,73,.4)', color: 'transparent' };
   return (
-    <button onClick={onClick} disabled={disabled} className="circle" style={{ ...look, border: '1.5px solid ' + look.borderColor }}
+    <button onClick={onClick} disabled={disabled} className={`circle ${status}`}
       aria-label={`Status: ${status === 'empty' ? 'pending' : status}.${disabled ? ' Locked.' : ' Tap to change.'}`}>
       {status === 'missed' ? <X size={16} /> : <Check size={16} strokeWidth={3} />}
     </button>
@@ -668,8 +699,6 @@ export default function App() {
     return { total, completed, missed, pending, pct };
   };
 
-  const today = useMemo(() => getDayMetrics(todayKey), [dailyRecords, booleanHabits, todayKey]);
-
   const analytics = useMemo(() => {
     const last14 = Array.from({ length: 14 }, (_, i) => addDays(todayKey, -(13 - i)));
     const avg = (n) => Math.round(Array.from({ length: n }, (_, i) => getDayMetrics(addDays(todayKey, -i)).pct).reduce((a, b) => a + b, 0) / n);
@@ -707,29 +736,34 @@ export default function App() {
     return (
       <div className="hx auth">
         <style>{STYLES}</style>
-        <div className="card rise">
-          <h1 className="serif" style={{ fontSize: 42, lineHeight: 1.1 }}>Rise early.<br />Stay steady.</h1>
-          <Ornament />
-          <p className="mute sm" style={{ marginTop: 14 }}>HabitX tracks your prayers, discipline, health and creative work in one daily checklist.</p>
-          {authError && (<div className="err"><AlertCircle size={16} style={{ flexShrink: 0 }} /><span>{authError}</span></div>)}
-          <form onSubmit={handleEmailAuth} className="form" style={{ marginTop: 24 }}>
-            {authMode === 'signup' && (<input className="input" required placeholder="Your name" aria-label="Your name" value={authName} onChange={(e) => setAuthName(e.target.value)} />)}
-            <input className="input" type="email" required placeholder="Email" aria-label="Email" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} />
-            <input className="input" type="password" required placeholder="Password" aria-label="Password" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} />
-            <button type="submit" disabled={authSubmitting} className="btn full">{authSubmitting ? 'Please wait…' : authMode === 'signup' ? 'Create account' : 'Sign in'}</button>
-          </form>
-          <button onClick={handleGuest} disabled={authSubmitting} className="ghost full" style={{ marginTop: 12 }}>Continue as guest</button>
-          <div className="center" style={{ marginTop: 20 }}>
-            <button className="link" onClick={() => { setAuthMode(authMode === 'login' ? 'signup' : 'login'); setAuthError(''); }}>
-              {authMode === 'login' ? 'New here? Create an account' : 'Have an account? Sign in'}
-            </button>
+        <div className="mihrab-wrap rise">
+          <div className="mihrab">
+            <div className="mihrab-in auth-in">
+              <span className="apex-star" aria-hidden="true" />
+              <h1 className="serif" style={{ fontSize: 40, lineHeight: 1.1 }}>Rise early.<br />Stay steady.</h1>
+              <Ornament />
+              <p className="mute sm" style={{ marginTop: 14 }}>HabitX tracks your prayers, discipline, health and creative work in one daily checklist.</p>
+              {authError && (<div className="err"><AlertCircle size={16} style={{ flexShrink: 0 }} /><span>{authError}</span></div>)}
+              <form onSubmit={handleEmailAuth} className="form" style={{ marginTop: 24 }}>
+                {authMode === 'signup' && (<input className="input" required placeholder="Your full name" aria-label="Your full name" value={authName} onChange={(e) => setAuthName(e.target.value)} />)}
+                <input className="input" type="email" required placeholder="Email" aria-label="Email" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} />
+                <input className="input" type="password" required placeholder="Password" aria-label="Password" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} />
+                <button type="submit" disabled={authSubmitting} className="btn full">{authSubmitting ? 'Please wait…' : authMode === 'signup' ? 'Create account' : 'Sign in'}</button>
+              </form>
+              <button onClick={handleGuest} disabled={authSubmitting} className="ghost full" style={{ marginTop: 12 }}>Continue as guest</button>
+              <div className="center" style={{ marginTop: 20 }}>
+                <button className="link" onClick={() => { setAuthMode(authMode === 'login' ? 'signup' : 'login'); setAuthError(''); }}>
+                  {authMode === 'login' ? 'New here? Create an account' : 'Have an account? Sign in'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
-  const firstName = (user.displayName || '').split(' ')[0];
+  const fullName = (user.displayName || '').trim() || (user.email ? user.email.split('@')[0] : 'Guest');
   const lockedDay = isLocked(selectedDate);
   const monthLabel = monthCursor.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   const firstWeekday = monthCursor.getDay();
@@ -750,21 +784,20 @@ export default function App() {
 
         {activeTab === 'today' && (
           <div className="stack rise">
-            <p className="bismillah" lang="ar" dir="rtl">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</p>
-
-            <section className="card hero">
-              <p className="mute sm">{greeting()}{firstName ? `, ${firstName}` : ''}</p>
-              <SunArc pct={today.pct} />
-              <div className="num serif">{today.pct}<small>%</small></div>
-              <p className="mute sm" style={{ marginTop: 8 }}>{today.completed} of {today.total} done · {formatDisplayDate(todayKey)}</p>
-              <button className="btn" onClick={() => { setSelectedDate(todayKey); setActiveTab('tracker'); }}>Open today’s checklist</button>
-            </section>
-
-            <section className="card strip">
-              <div><p className="v serif"><Flame size={20} />{analytics.current}</p><p className="l">day streak</p></div>
-              <div><p className="v serif">{analytics.weekly}%</p><p className="l">last 7 days</p></div>
-              <div><p className="v serif">{analytics.best}</p><p className="l">best streak</p></div>
-            </section>
+            <div className="mihrab-wrap">
+              <div className="mihrab">
+                <div className="mihrab-in welcome-in">
+                  <span className="apex-star" aria-hidden="true" />
+                  <p className="bismillah" lang="ar" dir="rtl">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</p>
+                  <Ornament style={{ margin: '14px auto 18px', maxWidth: 220 }} />
+                  <p className="salam" lang="ar" dir="rtl">اَلسَّلَامُ عَلَيْكُمْ</p>
+                  <p className="salam-en">Assalamu Alaikum</p>
+                  <h1 className="fullname serif">{fullName}</h1>
+                  <button className="btn" onClick={() => { setSelectedDate(todayKey); setActiveTab('tracker'); }}>Open Track Habits</button>
+                  <MosqueSkyline />
+                </div>
+              </div>
+            </div>
 
             <blockquote className="quote center">
               <Ornament style={{ margin: '0 auto 14px', maxWidth: 160 }} />
@@ -883,9 +916,9 @@ export default function App() {
         {activeTab === 'islamic' && (
           <div className="stack rise">
             <PageTitle>Islamic</PageTitle>
-            <div className="row g8" style={{ padding: 5, borderRadius: 18, background: 'rgba(233,185,73,.08)', border: '1px solid rgba(233,185,73,.2)' }}>
-              <button className={`ghost full ${islamicSection === 'prayer' ? 'on' : ''}`} style={islamicSection === 'prayer' ? { background: 'linear-gradient(135deg,#ffe58a,#ffc533)', color: '#0b2e27' } : {}} onClick={() => setIslamicSection('prayer')}><Sunrise size={15} />Prayer</button>
-              <button className={`ghost full ${islamicSection === 'surah' ? 'on' : ''}`} style={islamicSection === 'surah' ? { background: 'linear-gradient(135deg,#ffe58a,#ffc533)', color: '#0b2e27' } : {}} onClick={() => setIslamicSection('surah')}><BookOpen size={15} />Surah</button>
+            <div className="row g8 seg">
+              <button className={`ghost full ${islamicSection === 'prayer' ? 'on' : ''}`} onClick={() => setIslamicSection('prayer')}><Sunrise size={15} />Prayer</button>
+              <button className={`ghost full ${islamicSection === 'surah' ? 'on' : ''}`} onClick={() => setIslamicSection('surah')}><BookOpen size={15} />Surah</button>
             </div>
 
             {islamicSection === 'prayer' && (
@@ -974,8 +1007,8 @@ export default function App() {
                     <button key={k} className="day" onClick={() => goDay(k)} aria-label={`${formatDisplayDate(k)}: ${pct}% complete`}
                       style={{
                         background: logged ? `linear-gradient(145deg,rgba(255,229,138,${0.14 + (pct / 100) * 0.86}),rgba(233,166,42,${0.10 + (pct / 100) * 0.9}))` : 'rgba(233,185,73,.07)',
-                        color: logged && pct > 55 ? '#0b2e27' : '#f7ecd0',
-                        boxShadow: k === todayKey ? '0 0 0 2px #fff0b0' : 'none',
+                        color: logged && pct > 55 ? 'var(--ink)' : 'var(--text)',
+                        boxShadow: k === todayKey ? '0 0 0 2px #2fc4bf' : 'none',
                       }}>{parseDateKey(k).getDate()}</button>
                   );
                 })}
